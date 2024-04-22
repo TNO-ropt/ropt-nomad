@@ -20,9 +20,8 @@ pip install ropt-nomad
 
 ## Usage
 An optimization by ropt using the plugin works mostly as any other optimization
-run (see also the `ropt` documentation on
-[GitHubPages](https://tno-ropt.github.io/ropt/) or on [Read the
-Docs](https://ropt.readthedocs.io/)). However, there are a few things to
+run (see also the [ropt documentation](https://tno-ropt.github.io/ropt/)).
+However, there are a few things to
 consider:
 
 1. Gradients are not used, any specifications relating to gradient calculations
