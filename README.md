@@ -45,11 +45,14 @@ consider:
 
 
 ## Developement
-To install, enter the distribution directory and execute:
+The `ropt-nomad` source distribution can be found on
+[GitHub](https://github.com/tno-ropt/ropt-nomad). To install from source, enter
+the `ropt-pymoo` distribution directory and execute:
 
 ```bash
 pip install .
 ```
+
 
 ## Running the tests
 To run the test suite, install the necessary dependencies and execute `pytest`:
