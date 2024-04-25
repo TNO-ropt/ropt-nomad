@@ -138,12 +138,9 @@ class NomadOptimizer:  # pylint: disable=too-many-instance-attributes
         self,
         block_or_eval_point: Union[PyNomad.PyNomadEvalPoint, PyNomad.PyNomadBlock],
     ) -> Union[int, List[int]]:
-        return_value: Union[int, List[int]]
         if isinstance(block_or_eval_point, PyNomad.PyNomadEvalPoint):
-            return_value = 1
             eval_points = [block_or_eval_point]
         else:
-            return_value = [1] * block_or_eval_point.size()
             eval_points = [
                 block_or_eval_point.get_x(block_idx)
                 for block_idx in range(block_or_eval_point.size())
@@ -166,7 +163,12 @@ class NomadOptimizer:  # pylint: disable=too-many-instance-attributes
                     str(value) for value in constraints[idx, :]
                 )
             eval_point.setBBO(result_string.encode("UTF-8"))
-        return return_value
+
+        return (
+            not np.isnan(objectives[0])
+            if isinstance(block_or_eval_point, PyNomad.PyNomadEvalPoint)
+            else [not np.isnan(objective) for objective in objectives]
+        )
 
     def _get_parameters(self) -> List[str]:  # noqa: C901, PLR0912
         variable_indices = self._config.variables.indices
@@ -320,7 +322,10 @@ class NomadOptimizer:  # pylint: disable=too-many-instance-attributes
             self._cached_variables = variables.copy()
             with self._redirector.stop():
                 function, _ = self._optimizer_callback(
-                    variables, return_functions=True, return_gradients=False
+                    variables,
+                    return_functions=True,
+                    return_gradients=False,
+                    allow_nan=True,
                 )
             self._cached_function = function.copy()
         return self._cached_function
