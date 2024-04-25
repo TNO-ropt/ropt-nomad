@@ -317,3 +317,51 @@ def test_nomad_parallel_no_bb_max_block_size(
         match="Option Error: BB_MAX_BLOCK_SIZE must be specified",
     ):
         optimizer.start_optimization(plan=[{"config": enopt_config}, {"optimizer": {}}])
+
+
+@pytest.mark.parametrize("parallel", [False, True])
+def test_nomad_evaluation_failure(
+    enopt_config: Dict[str, Any], evaluator: Any, parallel: bool, test_functions: Any
+) -> None:
+    enopt_config["variables"]["lower_bounds"] = [0.15, -1.0, -1.0]
+    enopt_config["variables"]["upper_bounds"] = [1.0, 1.0, 0.2]
+    enopt_config["optimizer"]["max_iterations"] = 3
+    enopt_config["optimizer"]["parallel"] = parallel
+    enopt_config["realizations"] = {"realization_min_success": 0}
+    if parallel:
+        enopt_config["optimizer"]["options"] = ["BB_MAX_BLOCK_SIZE 4"]
+
+    optimizer = EnsembleOptimizer(evaluator())
+    result1 = optimizer.start_optimization(
+        plan=[
+            {"config": enopt_config},
+            {"optimizer": {"id": "opt"}},
+            {"tracker": {"id": "optimum", "source": "opt"}},
+        ],
+    )
+    assert result1 is not None
+    assert np.allclose(result1.evaluations.variables, [0.15, 0.0, 0.2], atol=0.02)
+
+    counter = 0
+
+    def _add_nan(x: Any) -> Any:
+        nonlocal counter
+        counter += 1
+        if counter == 2:
+            counter = 0
+            return np.nan
+        return test_functions[0](x)
+
+    optimizer = EnsembleOptimizer(evaluator((_add_nan, test_functions[1])))
+    result2 = optimizer.start_optimization(
+        plan=[
+            {"config": enopt_config},
+            {"optimizer": {"id": "opt"}},
+            {"tracker": {"id": "optimum", "source": "opt"}},
+        ],
+    )
+    assert result2 is not None
+    assert np.allclose(result2.evaluations.variables, [0.15, 0.0, 0.2], atol=0.02)
+    assert not np.all(
+        np.equal(result1.evaluations.variables, result2.evaluations.variables)
+    )
