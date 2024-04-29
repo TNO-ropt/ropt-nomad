@@ -125,6 +125,16 @@ class NomadOptimizer:  # pylint: disable=too-many-instance-attributes
                 self._parameters,
             )
 
+    @property
+    def allow_nan(self) -> bool:
+        """Whether NaN is allowed.
+
+        See the [ropt.plugins.optimizer.protocol.Optimizer][] protocol.
+
+        # noqa
+        """
+        return True
+
     def _get_bounds(self) -> Tuple[List[float], List[float]]:
         lower_bounds = self._config.variables.lower_bounds
         upper_bounds = self._config.variables.upper_bounds
@@ -325,7 +335,6 @@ class NomadOptimizer:  # pylint: disable=too-many-instance-attributes
                     variables,
                     return_functions=True,
                     return_gradients=False,
-                    allow_nan=True,
                 )
             self._cached_function = function.copy()
         return self._cached_function

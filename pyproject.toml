@@ -20,7 +20,7 @@ classifiers = [
 ]
 requires-python = ">=3.8"
 dynamic = ["version"]
-dependencies = ["PyNomadBBO"]
+dependencies = ["PyNomadBBO", "ropt>=0.2.1"]
 
 [project.optional-dependencies]
 test = ["ruff", "mypy", "pytest"]
