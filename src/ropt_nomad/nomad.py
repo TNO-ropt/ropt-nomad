@@ -18,6 +18,11 @@ import numpy as np
 import PyNomad
 from ropt.enums import ConstraintType, VariableType
 from ropt.exceptions import ConfigError
+from ropt.plugins.optimizer.protocol import (
+    OptimizerCallback,
+    OptimizerPluginProtocol,
+    OptimizerProtocol,
+)
 from ropt.plugins.optimizer.utils import create_output_path, filter_linear_constraints
 
 if TYPE_CHECKING:
@@ -25,9 +30,10 @@ if TYPE_CHECKING:
 
     from numpy.typing import NDArray
     from ropt.config.enopt import EnOptConfig
-    from ropt.plugins.optimizer.protocol import OptimizerCallback
 
 _OUTPUT_FILE = "optimizer_output"
+
+_SUPPORTED_METHODS = {"mads"}
 
 
 class _Redirector:
@@ -71,7 +77,7 @@ class _Redirector:
             os.dup2(self._new_stdout, 2)
 
 
-class NomadOptimizer:  # pylint: disable=too-many-instance-attributes
+class NomadOptimizer(OptimizerProtocol):
     """Backend class for optimization via nomad."""
 
     def __init__(
@@ -94,6 +100,14 @@ class NomadOptimizer:  # pylint: disable=too-many-instance-attributes
         self._cached_variables: Optional[NDArray[np.float64]] = None
         self._cached_function: Optional[NDArray[np.float64]] = None
         self._redirector: _Redirector
+
+        _, _, self._method = self._config.optimizer.method.lower().rpartition("/")
+        if self._method == "default":
+            self._method = "mads"
+        if self._method not in _SUPPORTED_METHODS:
+            msg = f"NOMAD optimizer algorithm {self._method} is not supported"
+            raise NotImplementedError(msg)
+
         self._get_constraints()
 
     def start(self, initial_values: NDArray[np.float64]) -> None:
@@ -117,7 +131,7 @@ class NomadOptimizer:  # pylint: disable=too-many-instance-attributes
 
         self._redirector = _Redirector(output_file)
         with self._redirector.start():
-            PyNomad.optimize(  # pylint: disable=c-extension-no-member
+            PyNomad.optimize(
                 self._evaluate,
                 initial_values.tolist(),
                 self._bounds[0],
@@ -129,7 +143,7 @@ class NomadOptimizer:  # pylint: disable=too-many-instance-attributes
     def allow_nan(self) -> bool:
         """Whether NaN is allowed.
 
-        See the [ropt.plugins.optimizer.protocol.Optimizer][] protocol.
+        See the [ropt.plugins.optimizer.protocol.OptimizerProtocol][] protocol.
 
         # noqa
         """
@@ -338,3 +352,27 @@ class NomadOptimizer:  # pylint: disable=too-many-instance-attributes
                 )
             self._cached_function = function.copy()
         return self._cached_function
+
+
+class NomadOptimizerPlugin(OptimizerPluginProtocol):
+    """Default filter transform plugin class."""
+
+    def create(
+        self, config: EnOptConfig, optimizer_callback: OptimizerCallback
+    ) -> NomadOptimizer:
+        """Initialize the optimizer plugin.
+
+        See the [ropt.plugins.optimizer.protocol.OptimizerPluginProtocol][] protocol.
+
+        # noqa
+        """
+        return NomadOptimizer(config, optimizer_callback)
+
+    def is_supported(self, method: str) -> bool:
+        """Check if a method is supported.
+
+        See the [ropt.plugins.protocol.PluginProtocol][] protocol.
+
+        # noqa
+        """
+        return method.lower() in (_SUPPORTED_METHODS | {"default"})

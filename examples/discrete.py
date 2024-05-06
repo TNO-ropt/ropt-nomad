@@ -17,7 +17,7 @@ CONFIG: Dict[str, Any] = {
         "types": VariableType.INTEGER,
     },
     "optimizer": {
-        "backend": "nomad",
+        "method": "nomad/default",
         "options": ["MAX_EVAL 100"],
         "output_dir": ".",
     },

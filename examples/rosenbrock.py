@@ -16,7 +16,7 @@ CONFIG: Dict[str, Any] = {
         "upper_bounds": [2.1, 2.2],
     },
     "optimizer": {
-        "backend": "nomad",
+        "method": "nomad/default",
         "max_iterations": 20,
         "output_dir": ".",
     },

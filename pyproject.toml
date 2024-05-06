@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ropt-nomad"
-description = "A NOMAD backend for the ropt robust optimization package"
+description = "A NOMAD plugin for the ropt robust optimization package"
 readme = "README.md"
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -20,13 +20,13 @@ classifiers = [
 ]
 requires-python = ">=3.8"
 dynamic = ["version"]
-dependencies = ["PyNomadBBO", "ropt>=0.2.1"]
+dependencies = ["PyNomadBBO", "ropt>=0.3.0"]
 
 [project.optional-dependencies]
 test = ["ruff", "mypy", "pytest"]
 
 [project.entry-points."ropt.plugins.optimizer"]
-nomad = "ropt_nomad.nomad:NomadOptimizer"
+nomad = "ropt_nomad.nomad:NomadOptimizerPlugin"
 
 [tool.setuptools.packages.find]
 where = ["src"]

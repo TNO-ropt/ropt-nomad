@@ -1,5 +1,3 @@
-# pylint: disable=protected-access
-
 from typing import Any, Dict, cast
 
 import numpy as np
@@ -17,7 +15,7 @@ def enopt_config_fixture() -> Dict[str, Any]:
             "initial_values": [0.2, 0.0, 0.1],
         },
         "optimizer": {
-            "backend": "nomad",
+            "method": "nomad/default",
             "max_iterations": 7,
         },
         "objective_functions": {
