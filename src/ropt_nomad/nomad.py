@@ -18,11 +18,7 @@ import numpy as np
 import PyNomad
 from ropt.enums import ConstraintType, VariableType
 from ropt.exceptions import ConfigError
-from ropt.plugins.optimizer.protocol import (
-    OptimizerCallback,
-    OptimizerPluginProtocol,
-    OptimizerProtocol,
-)
+from ropt.plugins.optimizer.base import Optimizer, OptimizerCallback, OptimizerPlugin
 from ropt.plugins.optimizer.utils import create_output_path, filter_linear_constraints
 
 if TYPE_CHECKING:
@@ -77,7 +73,7 @@ class _Redirector:
             os.dup2(self._new_stdout, 2)
 
 
-class NomadOptimizer(OptimizerProtocol):
+class NomadOptimizer(Optimizer):
     """Backend class for optimization via nomad."""
 
     def __init__(
@@ -87,7 +83,7 @@ class NomadOptimizer(OptimizerProtocol):
     ) -> None:
         """Initialize the optimizer implemented by the nomad plugin.
 
-        See the [ropt.plugins.optimizer.protocol.OptimizerBackend][] protocol.
+        See the [ropt.plugins.optimizer.base.Optimizer][] abstract base class.
 
         # noqa
         """
@@ -113,7 +109,7 @@ class NomadOptimizer(OptimizerProtocol):
     def start(self, initial_values: NDArray[np.float64]) -> None:
         """Start the optimization.
 
-        See the [ropt.plugins.optimizer.protocol.OptimizerBackend][] protocol.
+        See the [ropt.plugins.optimizer.base.Optimizer][] abstract base class.
 
         # noqa
         """
@@ -143,7 +139,7 @@ class NomadOptimizer(OptimizerProtocol):
     def allow_nan(self) -> bool:
         """Whether NaN is allowed.
 
-        See the [ropt.plugins.optimizer.protocol.OptimizerProtocol][] protocol.
+        See the [ropt.plugins.optimizer.base.Optimizer][] abstract base class.
 
         # noqa
         """
@@ -354,7 +350,7 @@ class NomadOptimizer(OptimizerProtocol):
         return self._cached_function
 
 
-class NomadOptimizerPlugin(OptimizerPluginProtocol):
+class NomadOptimizerPlugin(OptimizerPlugin):
     """Default filter transform plugin class."""
 
     def create(
@@ -362,7 +358,7 @@ class NomadOptimizerPlugin(OptimizerPluginProtocol):
     ) -> NomadOptimizer:
         """Initialize the optimizer plugin.
 
-        See the [ropt.plugins.optimizer.protocol.OptimizerPluginProtocol][] protocol.
+        See the [ropt.plugins.optimizer.base.OptimizerPlugin][] abstract base class.
 
         # noqa
         """
@@ -371,7 +367,7 @@ class NomadOptimizerPlugin(OptimizerPluginProtocol):
     def is_supported(self, method: str) -> bool:
         """Check if a method is supported.
 
-        See the [ropt.plugins.protocol.PluginProtocol][] protocol.
+        See the [ropt.plugins.optimizer.base.OptimizerPlugin][] abstract base class.
 
         # noqa
         """
