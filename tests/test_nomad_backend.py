@@ -5,7 +5,7 @@ import pytest
 from numpy.typing import NDArray
 from ropt.enums import ConstraintType
 from ropt.exceptions import ConfigError
-from ropt.optimization import EnsembleOptimizer
+from ropt.workflow import BasicWorkflow
 
 
 @pytest.fixture(name="enopt_config")
@@ -34,16 +34,9 @@ def test_nomad_bound_constraints(
     enopt_config["optimizer"]["parallel"] = parallel
     if parallel:
         enopt_config["optimizer"]["options"] = ["BB_MAX_BLOCK_SIZE 4"]
-    optimizer = EnsembleOptimizer(evaluator())
-    result = optimizer.start_optimization(
-        plan=[
-            {"config": enopt_config},
-            {"optimizer": {"id": "opt"}},
-            {"tracker": {"id": "optimum", "source": "opt"}},
-        ],
-    )
-    assert result is not None
-    assert np.allclose(result.evaluations.variables, [0.15, 0.0, 0.2], atol=0.02)
+    variables = BasicWorkflow(enopt_config, evaluator()).run().variables
+    assert variables is not None
+    assert np.allclose(variables, [0.15, 0.0, 0.2], atol=0.02)
 
 
 def test_nomad_bound_constraints_block_size_one(
@@ -54,16 +47,9 @@ def test_nomad_bound_constraints_block_size_one(
     enopt_config["optimizer"]["max_iterations"] = 3
     enopt_config["optimizer"]["parallel"] = True
     enopt_config["optimizer"]["options"] = ["BB_MAX_BLOCK_SIZE 1"]
-    optimizer = EnsembleOptimizer(evaluator())
-    result = optimizer.start_optimization(
-        plan=[
-            {"config": enopt_config},
-            {"optimizer": {"id": "opt"}},
-            {"tracker": {"id": "optimum", "source": "opt"}},
-        ],
-    )
-    assert result is not None
-    assert np.allclose(result.evaluations.variables, [0.15, 0.0, 0.2], atol=0.02)
+    variables = BasicWorkflow(enopt_config, evaluator()).run().variables
+    assert variables is not None
+    assert np.allclose(variables, [0.15, 0.0, 0.2], atol=0.02)
 
 
 @pytest.mark.parametrize("parallel", [False, True])
@@ -92,22 +78,9 @@ def test_nomad_ineq_nonlinear_constraints(
             NDArray[np.float64], weight * variables[0] + weight * variables[2]
         ),
     )
-    optimizer = EnsembleOptimizer(evaluator(test_functions))
-    result = optimizer.start_optimization(
-        plan=[
-            {"config": enopt_config},
-            {"optimizer": {"id": "opt"}},
-            {
-                "tracker": {
-                    "id": "optimum",
-                    "source": "opt",
-                    "constraint_tolerance": 1e-4,
-                }
-            },
-        ],
-    )
-    assert result is not None
-    assert np.allclose(result.evaluations.variables, [-0.05, 0.0, 0.45], atol=0.02)
+    variables = BasicWorkflow(enopt_config, evaluator(test_functions)).run().variables
+    assert variables is not None
+    assert np.allclose(variables, [-0.05, 0.0, 0.45], atol=0.02)
 
 
 @pytest.mark.parametrize("parallel", [False, True])
@@ -131,12 +104,11 @@ def test_nomad_eq_nonlinear_constraints(
         *test_functions,
         lambda variables: cast(NDArray[np.float64], variables[0] + variables[2]),
     )
-    optimizer = EnsembleOptimizer(evaluator(test_functions))
     with pytest.raises(
         ConfigError,
         match="Equality constraints are not supported by NOMAD",
     ):
-        optimizer.start_optimization(plan=[{"config": enopt_config}, {"optimizer": {}}])
+        BasicWorkflow(enopt_config, evaluator(test_functions)).run()
 
 
 @pytest.mark.parametrize("parallel", [False, True])
@@ -154,22 +126,9 @@ def test_nomad_le_ge_linear_constraints(
     if parallel:
         enopt_config["optimizer"]["options"] = ["BB_MAX_BLOCK_SIZE 4"]
 
-    optimizer = EnsembleOptimizer(evaluator())
-    result = optimizer.start_optimization(
-        plan=[
-            {"config": enopt_config},
-            {"optimizer": {"id": "opt"}},
-            {
-                "tracker": {
-                    "id": "optimum",
-                    "source": "opt",
-                    "constraint_tolerance": 1e-4,
-                }
-            },
-        ],
-    )
-    assert result is not None
-    assert np.allclose(result.evaluations.variables, [-0.05, 0.0, 0.45], atol=0.02)
+    variables = BasicWorkflow(enopt_config, evaluator()).run().variables
+    assert variables is not None
+    assert np.allclose(variables, [-0.05, 0.0, 0.45], atol=0.02)
 
 
 @pytest.mark.parametrize("parallel", [False, True])
@@ -187,32 +146,18 @@ def test_nomad_eq_linear_constraints(
     if parallel:
         enopt_config["optimizer"]["options"] = ["BB_MAX_BLOCK_SIZE 4"]
 
-    optimizer = EnsembleOptimizer(evaluator())
     with pytest.raises(
         ConfigError, match="Equality constraints are not supported by NOMAD"
     ):
-        optimizer.start_optimization(
-            plan=[
-                {"config": enopt_config},
-                {"optimizer": {"id": "opt"}},
-                {
-                    "tracker": {
-                        "id": "optimum",
-                        "source": "opt",
-                        "constraint_tolerance": 1e-4,
-                    }
-                },
-            ],
-        )
+        BasicWorkflow(enopt_config, evaluator()).run()
 
 
 def test_nomad_dimension_keyword(enopt_config: Dict[str, Any], evaluator: Any) -> None:
     enopt_config["variables"]["lower_bounds"] = [-1.0, -1.0, -1.0]
     enopt_config["variables"]["upper_bounds"] = [1.0, 1.0, 1.0]
     enopt_config["optimizer"]["options"] = ["DIMENSION 4"]
-    optimizer = EnsembleOptimizer(evaluator())
     with pytest.raises(ConfigError, match="Option Error: DIMENSION cannot be used"):
-        optimizer.start_optimization(plan=[{"config": enopt_config}, {"optimizer": {}}])
+        BasicWorkflow(enopt_config, evaluator()).run()
 
 
 def test_nomad_max_iterations_keyword(
@@ -221,12 +166,11 @@ def test_nomad_max_iterations_keyword(
     enopt_config["variables"]["lower_bounds"] = [-1.0, -1.0, -1.0]
     enopt_config["variables"]["upper_bounds"] = [1.0, 1.0, 1.0]
     enopt_config["optimizer"]["options"] = ["MAX_ITERATIONS 4"]
-    optimizer = EnsembleOptimizer(evaluator())
     with pytest.raises(
         ConfigError,
         match="Option Error: MAX_ITERATIONS, maximum iterations already configured",
     ):
-        optimizer.start_optimization(plan=[{"config": enopt_config}, {"optimizer": {}}])
+        BasicWorkflow(enopt_config, evaluator()).run()
 
 
 @pytest.mark.parametrize("bound_type", [ConstraintType.LE, ConstraintType.GE])
@@ -251,42 +195,16 @@ def test_nomad_bb_output_type(
             NDArray[np.float64], weight * variables[0] + weight * variables[2]
         ),
     )
-    optimizer = EnsembleOptimizer(evaluator(test_functions))
-    result = optimizer.start_optimization(
-        plan=[
-            {"config": enopt_config},
-            {"optimizer": {"id": "opt"}},
-            {
-                "tracker": {
-                    "id": "optimum",
-                    "source": "opt",
-                    "constraint_tolerance": 1e-4,
-                }
-            },
-        ],
-    )
-    assert result is not None
-    assert np.allclose(result.evaluations.variables, [-0.05, 0.0, 0.45], atol=0.02)
+    variables = BasicWorkflow(enopt_config, evaluator(test_functions)).run().variables
+    assert variables is not None
+    assert np.allclose(variables, [-0.05, 0.0, 0.45], atol=0.02)
 
     enopt_config["optimizer"]["options"] = ["BB_OUTPUT_TYPE OBJ PB PB"]
-    optimizer = EnsembleOptimizer(evaluator(test_functions))
     with pytest.raises(
         ConfigError,
         match="Option Error: BB_OUTPUT_TYPE specifies incorrect number of outputs",
     ):
-        optimizer.start_optimization(
-            plan=[
-                {"config": enopt_config},
-                {"optimizer": {"id": "opt"}},
-                {
-                    "tracker": {
-                        "id": "optimum",
-                        "source": "opt",
-                        "constraint_tolerance": 1e-4,
-                    }
-                },
-            ],
-        )
+        BasicWorkflow(enopt_config, evaluator()).run()
 
 
 def test_nomad_bb_max_block_size_no_parallel(
@@ -295,12 +213,11 @@ def test_nomad_bb_max_block_size_no_parallel(
     enopt_config["variables"]["lower_bounds"] = [-1.0, -1.0, -1.0]
     enopt_config["variables"]["upper_bounds"] = [1.0, 1.0, 1.0]
     enopt_config["optimizer"]["options"] = ["BB_MAX_BLOCK_SIZE 4"]
-    optimizer = EnsembleOptimizer(evaluator())
     with pytest.raises(
         ConfigError,
         match="Option Error: BB_MAX_BLOCK_SIZE may only be specified",
     ):
-        optimizer.start_optimization(plan=[{"config": enopt_config}, {"optimizer": {}}])
+        BasicWorkflow(enopt_config, evaluator()).run()
 
 
 def test_nomad_parallel_no_bb_max_block_size(
@@ -309,12 +226,11 @@ def test_nomad_parallel_no_bb_max_block_size(
     enopt_config["variables"]["lower_bounds"] = [-1.0, -1.0, -1.0]
     enopt_config["variables"]["upper_bounds"] = [1.0, 1.0, 1.0]
     enopt_config["optimizer"]["parallel"] = True
-    optimizer = EnsembleOptimizer(evaluator())
     with pytest.raises(
         ConfigError,
         match="Option Error: BB_MAX_BLOCK_SIZE must be specified",
     ):
-        optimizer.start_optimization(plan=[{"config": enopt_config}, {"optimizer": {}}])
+        BasicWorkflow(enopt_config, evaluator()).run()
 
 
 @pytest.mark.parametrize("parallel", [False, True])
@@ -329,16 +245,9 @@ def test_nomad_evaluation_failure(
     if parallel:
         enopt_config["optimizer"]["options"] = ["BB_MAX_BLOCK_SIZE 4"]
 
-    optimizer = EnsembleOptimizer(evaluator())
-    result1 = optimizer.start_optimization(
-        plan=[
-            {"config": enopt_config},
-            {"optimizer": {"id": "opt"}},
-            {"tracker": {"id": "optimum", "source": "opt"}},
-        ],
-    )
-    assert result1 is not None
-    assert np.allclose(result1.evaluations.variables, [0.15, 0.0, 0.2], atol=0.02)
+    variables1 = BasicWorkflow(enopt_config, evaluator()).run().variables
+    assert variables1 is not None
+    assert np.allclose(variables1, [0.15, 0.0, 0.2], atol=0.02)
 
     counter = 0
 
@@ -350,16 +259,11 @@ def test_nomad_evaluation_failure(
             return np.nan
         return test_functions[0](x)
 
-    optimizer = EnsembleOptimizer(evaluator((_add_nan, test_functions[1])))
-    result2 = optimizer.start_optimization(
-        plan=[
-            {"config": enopt_config},
-            {"optimizer": {"id": "opt"}},
-            {"tracker": {"id": "optimum", "source": "opt"}},
-        ],
+    variables2 = (
+        BasicWorkflow(enopt_config, evaluator((_add_nan, test_functions[1])))
+        .run()
+        .variables
     )
-    assert result2 is not None
-    assert np.allclose(result2.evaluations.variables, [0.15, 0.0, 0.2], atol=0.02)
-    assert not np.all(
-        np.equal(result1.evaluations.variables, result2.evaluations.variables)
-    )
+    assert variables2 is not None
+    assert np.allclose(variables2, [0.15, 0.0, 0.2], atol=0.02)
+    assert not np.all(np.equal(variables1, variables2))

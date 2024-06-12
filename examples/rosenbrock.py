@@ -1,13 +1,10 @@
-from typing import Any, Dict  # noqa: INP001
+from typing import Any, Dict, Tuple  # noqa: INP001
 
 import numpy as np
 from numpy.typing import NDArray
-from ropt.config.enopt import EnOptConfig
-from ropt.enums import EventType
 from ropt.evaluator import EvaluatorContext, EvaluatorResult
-from ropt.events import OptimizationEvent
-from ropt.optimization import EnsembleOptimizer
-from ropt.results import FunctionResults
+from ropt.results import FunctionResults, Results
+from ropt.workflow import BasicWorkflow
 
 CONFIG: Dict[str, Any] = {
     "variables": {
@@ -33,9 +30,8 @@ def rosenbrock(variables: NDArray[np.float64], _: EvaluatorContext) -> Evaluator
     )
 
 
-def report(event: OptimizationEvent) -> None:
-    assert event.results is not None
-    for item in event.results:
+def report(results: Tuple[Results, ...]) -> None:
+    for item in results:
         if isinstance(item, FunctionResults):
             assert item.functions is not None
             print(f"evaluation: {item.result_id}")
@@ -44,16 +40,7 @@ def report(event: OptimizationEvent) -> None:
 
 
 def run_optimization(config: Dict[str, Any]) -> None:
-    optimizer = EnsembleOptimizer(rosenbrock)
-    optimizer.add_observer(EventType.FINISHED_EVALUATION, report)
-    optimal_result = optimizer.start_optimization(
-        plan=[
-            {"config": EnOptConfig.model_validate(config)},
-            {"optimizer": {"id": "opt"}},
-            {"tracker": {"id": "optimum", "source": "opt"}},
-        ],
-    )
-
+    optimal_result = BasicWorkflow(config, rosenbrock, callback=report).run().results
     assert optimal_result is not None
     assert optimal_result.functions is not None
     assert np.allclose(optimal_result.evaluations.variables, 1.0, atol=0.01)
