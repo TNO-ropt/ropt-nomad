@@ -7,6 +7,7 @@ import sys
 from contextlib import contextmanager
 from typing import (
     TYPE_CHECKING,
+    Final,
     Generator,
     List,
     Optional,
@@ -27,9 +28,9 @@ if TYPE_CHECKING:
     from numpy.typing import NDArray
     from ropt.config.enopt import EnOptConfig
 
-_OUTPUT_FILE = "optimizer_output"
+_OUTPUT_FILE: Final = "optimizer_output"
 
-_SUPPORTED_METHODS = {"mads"}
+_SUPPORTED_METHODS: Final = {"mads"}
 
 
 class _Redirector:
