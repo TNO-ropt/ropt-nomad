@@ -1,10 +1,12 @@
-from typing import Any, Dict, Tuple  # noqa: INP001
+from typing import Any, Dict  # noqa: INP001
 
 import numpy as np
 from numpy.typing import NDArray
+from ropt.enums import EventType
 from ropt.evaluator import EvaluatorContext, EvaluatorResult
-from ropt.results import FunctionResults, Results
-from ropt.workflow import BasicOptimizationWorkflow
+from ropt.events import Event
+from ropt.plan import OptimizationPlanRunner
+from ropt.results import FunctionResults
 
 CONFIG: Dict[str, Any] = {
     "variables": {
@@ -30,8 +32,9 @@ def rosenbrock(variables: NDArray[np.float64], _: EvaluatorContext) -> Evaluator
     )
 
 
-def report(results: Tuple[Results, ...]) -> None:
-    for item in results:
+def report(event: Event) -> None:
+    assert event.results is not None
+    for item in event.results:
         if isinstance(item, FunctionResults):
             assert item.functions is not None
             print(f"evaluation: {item.result_id}")
@@ -41,7 +44,10 @@ def report(results: Tuple[Results, ...]) -> None:
 
 def run_optimization(config: Dict[str, Any]) -> None:
     optimal_result = (
-        BasicOptimizationWorkflow(config, rosenbrock).add_callback(report).run().results
+        OptimizationPlanRunner(config, rosenbrock)
+        .add_observer(EventType.FINISHED_EVALUATION, report)
+        .run()
+        .results
     )
     assert optimal_result is not None
     assert optimal_result.functions is not None
