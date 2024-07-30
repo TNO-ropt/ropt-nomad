@@ -22,6 +22,11 @@ requires-python = ">=3.8"
 dynamic = ["version"]
 dependencies = ["PyNomadBBO", "ropt>=0.5.0"]
 
+[project.urls]
+"Homepage" = "https://github.com/TNO-ropt/ropt-nomad"
+"Repository" = "https://github.com/TNO-ropt/ropt-nomad"
+"Bug Tracker" = "https://github.com/TNO-ropt/ropt-nomad/issues"
+
 [project.optional-dependencies]
 test = ["ruff", "mypy", "pytest"]
 
