@@ -201,8 +201,10 @@ class NomadOptimizer(Optimizer):
         parameters = [f"DIMENSION {dim}"]
 
         nonlinear = self._config.nonlinear_constraints
-        linear = self._config.linear_constraints
         non_linear_count = 0 if nonlinear is None else nonlinear.rhs_values.size
+        linear = self._config.linear_constraints
+        if linear is not None and variable_indices is not None:
+            linear = filter_linear_constraints(linear, variable_indices)
         linear_count = 0 if linear is None else linear.rhs_values.size
         bb_output_type: Optional[str] = "BB_OUTPUT_TYPE OBJ" + " EB" * (
             linear_count + non_linear_count
@@ -232,8 +234,13 @@ class NomadOptimizer(Optimizer):
                 if option.strip().startswith("BB_INPUT_TYPE"):
                     bb_input_type = option.strip()
                 elif self._config.variables.types is not None:
+                    types = (
+                        self._config.variables.types
+                        if variable_indices is None
+                        else self._config.variables.types[variable_indices]
+                    )
                     bb_input_type = "BB_INPUT_TYPE ("
-                    for item in self._config.variables.types:
+                    for item in types:
                         bb_input_type += " I" if item == VariableType.INTEGER else " R"
                     bb_input_type += " )"
 
