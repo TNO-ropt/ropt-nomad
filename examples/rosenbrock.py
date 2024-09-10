@@ -1,4 +1,6 @@
-from typing import Any, Dict  # noqa: INP001
+"""Rosenbrock example."""
+
+from typing import Any, Dict
 
 import numpy as np
 from numpy.typing import NDArray
@@ -23,6 +25,15 @@ CONFIG: Dict[str, Any] = {
 
 
 def rosenbrock(variables: NDArray[np.float64], _: EvaluatorContext) -> EvaluatorResult:
+    """Evaluate the rosenbrock function.
+
+    Args:
+        variables: The variables to evaluate
+        context:   Evaluator context
+
+    Returns:
+        Calculated objectives.
+    """
     objectives = np.zeros((variables.shape[0], 1), dtype=np.float64)
     for idx in range(variables.shape[0]):
         x, y = variables[idx, :]
@@ -33,6 +44,11 @@ def rosenbrock(variables: NDArray[np.float64], _: EvaluatorContext) -> Evaluator
 
 
 def report(event: Event) -> None:
+    """Report results of an evaluation.
+
+    Args:
+        event: event data
+    """
     assert event.results is not None
     for item in event.results:
         if isinstance(item, FunctionResults):
@@ -43,6 +59,7 @@ def report(event: Event) -> None:
 
 
 def run_optimization(config: Dict[str, Any]) -> None:
+    """Run the optimization."""
     optimal_result = (
         OptimizationPlanRunner(config, rosenbrock)
         .add_observer(EventType.FINISHED_EVALUATION, report)
@@ -58,6 +75,7 @@ def run_optimization(config: Dict[str, Any]) -> None:
 
 
 def main() -> None:
+    """Main function."""
     run_optimization(CONFIG)
 
 
