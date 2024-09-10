@@ -372,7 +372,7 @@ class NomadOptimizerPlugin(OptimizerPlugin):
         """
         return NomadOptimizer(config, optimizer_callback)
 
-    def is_supported(self, method: str) -> bool:
+    def is_supported(self, method: str, *, explicit: bool) -> bool:  # noqa: ARG002
         """Check if a method is supported.
 
         See the [ropt.plugins.optimizer.base.OptimizerPlugin][] abstract base class.
