@@ -20,22 +20,18 @@ classifiers = [
 ]
 requires-python = ">=3.8"
 dynamic = ["version"]
-dependencies = ["PyNomadBBO", "ropt>=0.5.0"]
+dependencies = ["PyNomadBBO"]
 
 [project.urls]
 "Homepage" = "https://github.com/TNO-ropt/ropt-nomad"
 "Repository" = "https://github.com/TNO-ropt/ropt-nomad"
 "Bug Tracker" = "https://github.com/TNO-ropt/ropt-nomad/issues"
 
-[project.optional-dependencies]
-test = ["ruff", "mypy", "pytest"]
-
 [project.entry-points."ropt.plugins.optimizer"]
 nomad = "ropt_nomad.nomad:NomadOptimizerPlugin"
 
 [tool.setuptools.packages.find]
 where = ["src"]
-include = ["ropt_nomad"]
 
 [tool.setuptools.package-data]
 ropt_nomad = ["py.typed"]
@@ -93,3 +89,10 @@ plugins = ["numpy.typing.mypy_plugin"]
 [[tool.mypy.overrides]]
 module = ["PyNomad.*"]
 ignore_missing_imports = true
+
+[tool.uv]
+dev-dependencies = [
+    "mypy>=1.11.2",
+    "pytest>=8.3.3",
+    "ruff>=0.6.5",
+]
