@@ -107,6 +107,16 @@ class NomadOptimizer(Optimizer):
 
         self._get_constraints()
 
+    @property
+    def is_parallel(self) -> bool:
+        """Whether the current run is parallel.
+
+        See the [ropt.plugins.optimizer.base.Optimizer][] abstract base class.
+
+        # noqa
+        """
+        return self._config.optimizer.parallel
+
     def start(self, initial_values: NDArray[np.float64]) -> None:
         """Start the optimization.
 
@@ -186,9 +196,9 @@ class NomadOptimizer(Optimizer):
             eval_point.setBBO(result_string.encode("UTF-8"))
 
         return (
-            not np.isnan(objectives[0])
+            int(not np.isnan(objectives[0]))
             if isinstance(block_or_eval_point, PyNomad.PyNomadEvalPoint)
-            else [not np.isnan(objective) for objective in objectives]
+            else [int(not np.isnan(objective)) for objective in objectives]
         )
 
     def _get_parameters(self) -> List[str]:  # noqa: C901, PLR0912
