@@ -5,7 +5,7 @@ import pytest
 from numpy.typing import NDArray
 from ropt.enums import ConstraintType
 from ropt.exceptions import ConfigError
-from ropt.plan import OptimizationPlanRunner
+from ropt.plan import BasicOptimizer
 
 
 @pytest.fixture(name="enopt_config")
@@ -34,7 +34,7 @@ def test_nomad_bound_constraints(
     enopt_config["optimizer"]["parallel"] = parallel
     if parallel:
         enopt_config["optimizer"]["options"] = ["BB_MAX_BLOCK_SIZE 4"]
-    variables = OptimizationPlanRunner(enopt_config, evaluator()).run().variables
+    variables = BasicOptimizer(enopt_config, evaluator()).run().variables
     assert variables is not None
     assert np.allclose(variables, [0.15, 0.0, 0.2], atol=0.02)
 
@@ -47,7 +47,7 @@ def test_nomad_bound_constraints_block_size_one(
     enopt_config["optimizer"]["max_iterations"] = 3
     enopt_config["optimizer"]["parallel"] = True
     enopt_config["optimizer"]["options"] = ["BB_MAX_BLOCK_SIZE 1"]
-    variables = OptimizationPlanRunner(enopt_config, evaluator()).run().variables
+    variables = BasicOptimizer(enopt_config, evaluator()).run().variables
     assert variables is not None
     assert np.allclose(variables, [0.15, 0.0, 0.2], atol=0.02)
 
@@ -78,9 +78,7 @@ def test_nomad_ineq_nonlinear_constraints(
             NDArray[np.float64], weight * variables[0] + weight * variables[2]
         ),
     )
-    variables = (
-        OptimizationPlanRunner(enopt_config, evaluator(test_functions)).run().variables
-    )
+    variables = BasicOptimizer(enopt_config, evaluator(test_functions)).run().variables
     assert variables is not None
     assert np.allclose(variables, [-0.05, 0.0, 0.45], atol=0.02)
 
@@ -110,7 +108,7 @@ def test_nomad_eq_nonlinear_constraints(
         ConfigError,
         match="Equality constraints are not supported by NOMAD",
     ):
-        OptimizationPlanRunner(enopt_config, evaluator(test_functions)).run()
+        BasicOptimizer(enopt_config, evaluator(test_functions)).run()
 
 
 @pytest.mark.parametrize("parallel", [False, True])
@@ -128,7 +126,7 @@ def test_nomad_le_ge_linear_constraints(
     if parallel:
         enopt_config["optimizer"]["options"] = ["BB_MAX_BLOCK_SIZE 4"]
 
-    variables = OptimizationPlanRunner(enopt_config, evaluator()).run().variables
+    variables = BasicOptimizer(enopt_config, evaluator()).run().variables
     assert variables is not None
     assert np.allclose(variables, [-0.05, 0.0, 0.45], atol=0.02)
 
@@ -151,7 +149,7 @@ def test_nomad_eq_linear_constraints(
     with pytest.raises(
         ConfigError, match="Equality constraints are not supported by NOMAD"
     ):
-        OptimizationPlanRunner(enopt_config, evaluator()).run()
+        BasicOptimizer(enopt_config, evaluator()).run()
 
 
 def test_nomad_dimension_keyword(enopt_config: Dict[str, Any], evaluator: Any) -> None:
@@ -159,7 +157,7 @@ def test_nomad_dimension_keyword(enopt_config: Dict[str, Any], evaluator: Any) -
     enopt_config["variables"]["upper_bounds"] = [1.0, 1.0, 1.0]
     enopt_config["optimizer"]["options"] = ["DIMENSION 4"]
     with pytest.raises(ConfigError, match="Option Error: DIMENSION cannot be used"):
-        OptimizationPlanRunner(enopt_config, evaluator()).run()
+        BasicOptimizer(enopt_config, evaluator()).run()
 
 
 def test_nomad_max_iterations_keyword(
@@ -172,7 +170,7 @@ def test_nomad_max_iterations_keyword(
         ConfigError,
         match="Option Error: MAX_ITERATIONS, maximum iterations already configured",
     ):
-        OptimizationPlanRunner(enopt_config, evaluator()).run()
+        BasicOptimizer(enopt_config, evaluator()).run()
 
 
 @pytest.mark.parametrize("bound_type", [ConstraintType.LE, ConstraintType.GE])
@@ -197,9 +195,7 @@ def test_nomad_bb_output_type(
             NDArray[np.float64], weight * variables[0] + weight * variables[2]
         ),
     )
-    variables = (
-        OptimizationPlanRunner(enopt_config, evaluator(test_functions)).run().variables
-    )
+    variables = BasicOptimizer(enopt_config, evaluator(test_functions)).run().variables
     assert variables is not None
     assert np.allclose(variables, [-0.05, 0.0, 0.45], atol=0.02)
 
@@ -208,7 +204,7 @@ def test_nomad_bb_output_type(
         ConfigError,
         match="Option Error: BB_OUTPUT_TYPE specifies incorrect number of outputs",
     ):
-        OptimizationPlanRunner(enopt_config, evaluator()).run()
+        BasicOptimizer(enopt_config, evaluator()).run()
 
 
 def test_nomad_bb_max_block_size_no_parallel(
@@ -221,7 +217,7 @@ def test_nomad_bb_max_block_size_no_parallel(
         ConfigError,
         match="Option Error: BB_MAX_BLOCK_SIZE may only be specified",
     ):
-        OptimizationPlanRunner(enopt_config, evaluator()).run()
+        BasicOptimizer(enopt_config, evaluator()).run()
 
 
 def test_nomad_parallel_no_bb_max_block_size(
@@ -234,7 +230,7 @@ def test_nomad_parallel_no_bb_max_block_size(
         ConfigError,
         match="Option Error: BB_MAX_BLOCK_SIZE must be specified",
     ):
-        OptimizationPlanRunner(enopt_config, evaluator()).run()
+        BasicOptimizer(enopt_config, evaluator()).run()
 
 
 @pytest.mark.parametrize("parallel", [False, True])
@@ -249,7 +245,7 @@ def test_nomad_evaluation_failure(
     if parallel:
         enopt_config["optimizer"]["options"] = ["BB_MAX_BLOCK_SIZE 4"]
 
-    variables1 = OptimizationPlanRunner(enopt_config, evaluator()).run().variables
+    variables1 = BasicOptimizer(enopt_config, evaluator()).run().variables
     assert variables1 is not None
     assert np.allclose(variables1, [0.15, 0.0, 0.2], atol=0.02)
 
@@ -264,7 +260,7 @@ def test_nomad_evaluation_failure(
         return test_functions[0](x)
 
     variables2 = (
-        OptimizationPlanRunner(enopt_config, evaluator((_add_nan, test_functions[1])))
+        BasicOptimizer(enopt_config, evaluator((_add_nan, test_functions[1])))
         .run()
         .variables
     )
