@@ -1,10 +1,10 @@
 import importlib
 import os
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 
-def _load_from_file(name: str, sub_path: Optional[str] = None) -> Any:
+def _load_from_file(name: str, sub_path: str | None = None) -> Any:
     path = Path(__file__).parent.parent / "examples"
     if sub_path is not None:
         path = path / sub_path

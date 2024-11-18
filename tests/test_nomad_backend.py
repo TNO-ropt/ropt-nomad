@@ -1,4 +1,4 @@
-from typing import Any, Dict, cast
+from typing import Any, cast
 
 import numpy as np
 import pytest
@@ -9,7 +9,7 @@ from ropt.plan import BasicOptimizer
 
 
 @pytest.fixture(name="enopt_config")
-def enopt_config_fixture() -> Dict[str, Any]:
+def enopt_config_fixture() -> dict[str, Any]:
     return {
         "variables": {
             "initial_values": [0.2, 0.0, 0.1],
@@ -26,7 +26,7 @@ def enopt_config_fixture() -> Dict[str, Any]:
 
 @pytest.mark.parametrize("parallel", [False, True])
 def test_nomad_bound_constraints(
-    enopt_config: Dict[str, Any], evaluator: Any, parallel: bool
+    enopt_config: dict[str, Any], evaluator: Any, parallel: bool
 ) -> None:
     enopt_config["variables"]["lower_bounds"] = [0.15, -1.0, -1.0]
     enopt_config["variables"]["upper_bounds"] = [1.0, 1.0, 0.2]
@@ -40,7 +40,7 @@ def test_nomad_bound_constraints(
 
 
 def test_nomad_bound_constraints_block_size_one(
-    enopt_config: Dict[str, Any], evaluator: Any
+    enopt_config: dict[str, Any], evaluator: Any
 ) -> None:
     enopt_config["variables"]["lower_bounds"] = [0.15, -1.0, -1.0]
     enopt_config["variables"]["upper_bounds"] = [1.0, 1.0, 0.2]
@@ -55,7 +55,7 @@ def test_nomad_bound_constraints_block_size_one(
 @pytest.mark.parametrize("parallel", [False, True])
 @pytest.mark.parametrize("bound_type", [ConstraintType.LE, ConstraintType.GE])
 def test_nomad_ineq_nonlinear_constraints(
-    enopt_config: Dict[str, Any],
+    enopt_config: dict[str, Any],
     bound_type: ConstraintType,
     evaluator: Any,
     parallel: bool,
@@ -85,7 +85,7 @@ def test_nomad_ineq_nonlinear_constraints(
 
 @pytest.mark.parametrize("parallel", [False, True])
 def test_nomad_eq_nonlinear_constraints(
-    enopt_config: Dict[str, Any],
+    enopt_config: dict[str, Any],
     evaluator: Any,
     parallel: bool,
     test_functions: Any,
@@ -113,7 +113,7 @@ def test_nomad_eq_nonlinear_constraints(
 
 @pytest.mark.parametrize("parallel", [False, True])
 def test_nomad_le_ge_linear_constraints(
-    enopt_config: Dict[str, Any], evaluator: Any, parallel: bool
+    enopt_config: dict[str, Any], evaluator: Any, parallel: bool
 ) -> None:
     enopt_config["variables"]["lower_bounds"] = [-1.0, -1.0, -1.0]
     enopt_config["variables"]["upper_bounds"] = [1.0, 1.0, 1.0]
@@ -133,7 +133,7 @@ def test_nomad_le_ge_linear_constraints(
 
 @pytest.mark.parametrize("parallel", [False, True])
 def test_nomad_eq_linear_constraints(
-    enopt_config: Dict[str, Any], evaluator: Any, parallel: bool
+    enopt_config: dict[str, Any], evaluator: Any, parallel: bool
 ) -> None:
     enopt_config["variables"]["lower_bounds"] = [-1.0, -1.0, -1.0]
     enopt_config["variables"]["upper_bounds"] = [1.0, 1.0, 1.0]
@@ -152,7 +152,7 @@ def test_nomad_eq_linear_constraints(
         BasicOptimizer(enopt_config, evaluator()).run()
 
 
-def test_nomad_dimension_keyword(enopt_config: Dict[str, Any], evaluator: Any) -> None:
+def test_nomad_dimension_keyword(enopt_config: dict[str, Any], evaluator: Any) -> None:
     enopt_config["variables"]["lower_bounds"] = [-1.0, -1.0, -1.0]
     enopt_config["variables"]["upper_bounds"] = [1.0, 1.0, 1.0]
     enopt_config["optimizer"]["options"] = ["DIMENSION 4"]
@@ -161,7 +161,7 @@ def test_nomad_dimension_keyword(enopt_config: Dict[str, Any], evaluator: Any) -
 
 
 def test_nomad_max_iterations_keyword(
-    enopt_config: Dict[str, Any], evaluator: Any
+    enopt_config: dict[str, Any], evaluator: Any
 ) -> None:
     enopt_config["variables"]["lower_bounds"] = [-1.0, -1.0, -1.0]
     enopt_config["variables"]["upper_bounds"] = [1.0, 1.0, 1.0]
@@ -175,7 +175,7 @@ def test_nomad_max_iterations_keyword(
 
 @pytest.mark.parametrize("bound_type", [ConstraintType.LE, ConstraintType.GE])
 def test_nomad_bb_output_type(
-    enopt_config: Dict[str, Any],
+    enopt_config: dict[str, Any],
     bound_type: ConstraintType,
     evaluator: Any,
     test_functions: Any,
@@ -208,7 +208,7 @@ def test_nomad_bb_output_type(
 
 
 def test_nomad_bb_max_block_size_no_parallel(
-    enopt_config: Dict[str, Any], evaluator: Any
+    enopt_config: dict[str, Any], evaluator: Any
 ) -> None:
     enopt_config["variables"]["lower_bounds"] = [-1.0, -1.0, -1.0]
     enopt_config["variables"]["upper_bounds"] = [1.0, 1.0, 1.0]
@@ -221,7 +221,7 @@ def test_nomad_bb_max_block_size_no_parallel(
 
 
 def test_nomad_parallel_no_bb_max_block_size(
-    enopt_config: Dict[str, Any], evaluator: Any
+    enopt_config: dict[str, Any], evaluator: Any
 ) -> None:
     enopt_config["variables"]["lower_bounds"] = [-1.0, -1.0, -1.0]
     enopt_config["variables"]["upper_bounds"] = [1.0, 1.0, 1.0]
@@ -235,7 +235,7 @@ def test_nomad_parallel_no_bb_max_block_size(
 
 @pytest.mark.parametrize("parallel", [False, True])
 def test_nomad_evaluation_failure(
-    enopt_config: Dict[str, Any], evaluator: Any, parallel: bool, test_functions: Any
+    enopt_config: dict[str, Any], evaluator: Any, parallel: bool, test_functions: Any
 ) -> None:
     enopt_config["variables"]["lower_bounds"] = [0.15, -1.0, -1.0]
     enopt_config["variables"]["upper_bounds"] = [1.0, 1.0, 0.2]

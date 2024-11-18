@@ -5,15 +5,7 @@ from __future__ import annotations
 import os
 import sys
 from contextlib import contextmanager
-from typing import (
-    TYPE_CHECKING,
-    Final,
-    Generator,
-    List,
-    Optional,
-    Tuple,
-    Union,
-)
+from typing import TYPE_CHECKING, Final, Generator
 
 import numpy as np
 import PyNomad
@@ -34,7 +26,7 @@ _SUPPORTED_METHODS: Final = {"mads"}
 
 
 class _Redirector:
-    def __init__(self, output_file: Optional[Path]) -> None:
+    def __init__(self, output_file: Path | None) -> None:
         sys.stdout.flush()
         sys.stderr.flush()
         self._old_stdout = os.dup(1)
@@ -92,10 +84,10 @@ class NomadOptimizer(Optimizer):
         self._optimizer_callback = optimizer_callback
         self._bounds = self._get_bounds()
         self._parameters = self._get_parameters()
-        self._coefficients: Optional[NDArray[np.float64]] = None
-        self._rhs_values: Optional[NDArray[np.float64]] = None
-        self._cached_variables: Optional[NDArray[np.float64]] = None
-        self._cached_function: Optional[NDArray[np.float64]] = None
+        self._coefficients: NDArray[np.float64] | None = None
+        self._rhs_values: NDArray[np.float64] | None = None
+        self._cached_variables: NDArray[np.float64] | None = None
+        self._cached_function: NDArray[np.float64] | None = None
         self._redirector: _Redirector
 
         _, _, self._method = self._config.optimizer.method.lower().rpartition("/")
@@ -132,7 +124,7 @@ class NomadOptimizer(Optimizer):
             initial_values = initial_values[variable_indices]
 
         output_dir = self._config.optimizer.output_dir
-        output_file: Optional[Path] = None
+        output_file: Path | None = None
         if output_dir is not None:
             output_file = create_output_path(_OUTPUT_FILE, output_dir, suffix=".txt")
 
@@ -156,7 +148,7 @@ class NomadOptimizer(Optimizer):
         """
         return True
 
-    def _get_bounds(self) -> Tuple[List[float], List[float]]:
+    def _get_bounds(self) -> tuple[list[float], list[float]]:
         lower_bounds = self._config.variables.lower_bounds
         upper_bounds = self._config.variables.upper_bounds
         variable_indices = self._config.variables.indices
@@ -167,8 +159,8 @@ class NomadOptimizer(Optimizer):
 
     def _evaluate(
         self,
-        block_or_eval_point: Union[PyNomad.PyNomadEvalPoint, PyNomad.PyNomadBlock],
-    ) -> Union[int, List[int]]:
+        block_or_eval_point: PyNomad.PyNomadEvalPoint | PyNomad.PyNomadBlock,
+    ) -> int | list[int]:
         if isinstance(block_or_eval_point, PyNomad.PyNomadEvalPoint):
             eval_points = [block_or_eval_point]
         else:
@@ -201,7 +193,7 @@ class NomadOptimizer(Optimizer):
             else [int(not np.isnan(objective)) for objective in objectives]
         )
 
-    def _get_parameters(self) -> List[str]:  # noqa: C901, PLR0912
+    def _get_parameters(self) -> list[str]:  # noqa: C901, PLR0912
         variable_indices = self._config.variables.indices
         dim = (
             self._config.variables.initial_values.size
@@ -216,7 +208,7 @@ class NomadOptimizer(Optimizer):
         if linear is not None and variable_indices is not None:
             linear = filter_linear_constraints(linear, variable_indices)
         linear_count = 0 if linear is None else linear.rhs_values.size
-        bb_output_type: Optional[str] = "BB_OUTPUT_TYPE OBJ" + " EB" * (
+        bb_output_type: str | None = "BB_OUTPUT_TYPE OBJ" + " EB" * (
             linear_count + non_linear_count
         )
         have_bb_max_block_size = False
