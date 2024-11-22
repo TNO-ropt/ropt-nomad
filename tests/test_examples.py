@@ -1,5 +1,4 @@
 import importlib
-import os
 from pathlib import Path
 from typing import Any
 
@@ -17,13 +16,13 @@ def _load_from_file(name: str, sub_path: str | None = None) -> Any:
     return module
 
 
-def test_rosenbrock_deterministic(tmp_path: Path) -> None:
-    os.chdir(tmp_path)
+def test_rosenbrock_deterministic(tmp_path: Path, monkeypatch: Any) -> None:
+    monkeypatch.chdir(tmp_path)
     module = _load_from_file("rosenbrock")
     module.main()
 
 
-def test_rosenbrock_ensemble(tmp_path: Path) -> None:
-    os.chdir(tmp_path)
+def test_rosenbrock_ensemble(tmp_path: Path, monkeypatch: Any) -> None:
+    monkeypatch.chdir(tmp_path)
     module = _load_from_file("discrete")
     module.main()
