@@ -18,7 +18,7 @@ def enopt_config_fixture() -> dict[str, Any]:
             "method": "nomad/default",
             "max_iterations": 7,
         },
-        "objective_functions": {
+        "objectives": {
             "weights": [0.75, 0.25],
         },
     }
