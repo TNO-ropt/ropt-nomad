@@ -48,8 +48,7 @@ def report(event: Event) -> None:
     Args:
         event: event data
     """
-    assert event.results is not None
-    for item in event.results:
+    for item in event.data["results"]:
         if isinstance(item, FunctionResults):
             assert item.functions is not None
             print(f"evaluation: {item.result_id}")
