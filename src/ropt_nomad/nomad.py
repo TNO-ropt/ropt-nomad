@@ -361,7 +361,7 @@ class NomadOptimizer(Optimizer):
 
 
 class NomadOptimizerPlugin(OptimizerPlugin):
-    """Default filter transform plugin class."""
+    """Nomad optimizer plugin class."""
 
     def create(
         self, config: EnOptConfig, optimizer_callback: OptimizerCallback
