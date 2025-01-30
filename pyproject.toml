@@ -16,7 +16,7 @@ classifiers = [
 ]
 requires-python = ">=3.11"
 dynamic = ["version"]
-dependencies = ["PyNomadBBO"]
+dependencies = ["PyNomadBBO<4.5.0"]
 
 [project.urls]
 "Homepage" = "https://github.com/TNO-ropt/ropt-nomad"
