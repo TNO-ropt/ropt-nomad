@@ -4,7 +4,7 @@ from typing import Any
 
 import numpy as np
 from numpy.typing import NDArray
-from ropt.enums import ConstraintType, EventType, VariableType
+from ropt.enums import EventType, VariableType
 from ropt.evaluator import EvaluatorContext, EvaluatorResult
 from ropt.plan import BasicOptimizer, Event
 from ropt.results import FunctionResults
@@ -22,8 +22,8 @@ CONFIG: dict[str, Any] = {
         "output_dir": ".",
     },
     "nonlinear_constraints": {
-        "types": [ConstraintType.LE],
-        "rhs_values": [0.0],
+        "lower_bounds": [-np.inf],
+        "upper_bounds": [0.0],
     },
 }
 

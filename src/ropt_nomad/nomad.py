@@ -9,10 +9,13 @@ from typing import TYPE_CHECKING, Final, Generator
 
 import numpy as np
 import PyNomad
-from ropt.enums import ConstraintType, VariableType
+from ropt.enums import VariableType
 from ropt.exceptions import ConfigError
 from ropt.plugins.optimizer.base import Optimizer, OptimizerCallback, OptimizerPlugin
-from ropt.plugins.optimizer.utils import create_output_path, filter_linear_constraints
+from ropt.plugins.optimizer.utils import (
+    NormalizedConstraints,
+    create_output_path,
+)
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -83,9 +86,8 @@ class NomadOptimizer(Optimizer):
         self._config = enopt_config
         self._optimizer_callback = optimizer_callback
         self._bounds = self._get_bounds()
-        self._parameters = self._get_parameters()
-        self._coefficients: NDArray[np.float64] | None = None
-        self._rhs_values: NDArray[np.float64] | None = None
+        self._normalized_constraints = self._init_constraints()
+        self._parameters = self._get_parameters(self._normalized_constraints)
         self._cached_variables: NDArray[np.float64] | None = None
         self._cached_function: NDArray[np.float64] | None = None
         self._redirector: _Redirector
@@ -96,8 +98,6 @@ class NomadOptimizer(Optimizer):
         if self._method not in _SUPPORTED_METHODS:
             msg = f"NOMAD optimizer algorithm {self._method} is not supported"
             raise NotImplementedError(msg)
-
-        self._get_constraints()
 
     @property
     def is_parallel(self) -> bool:
@@ -119,9 +119,8 @@ class NomadOptimizer(Optimizer):
         self._cached_variables = None
         self._cached_function = None
 
-        variable_indices = self._config.variables.indices
-        if variable_indices is not None:
-            initial_values = initial_values[variable_indices]
+        if self._config.variables.mask is not None:
+            initial_values = initial_values[self._config.variables.mask]
 
         output_dir = self._config.optimizer.output_dir
         output_file: Path | None = None
@@ -151,10 +150,9 @@ class NomadOptimizer(Optimizer):
     def _get_bounds(self) -> tuple[list[float], list[float]]:
         lower_bounds = self._config.variables.lower_bounds
         upper_bounds = self._config.variables.upper_bounds
-        variable_indices = self._config.variables.indices
-        if variable_indices is not None:
-            lower_bounds = lower_bounds[variable_indices]
-            upper_bounds = upper_bounds[variable_indices]
+        if self._config.variables.mask is not None:
+            lower_bounds = lower_bounds[self._config.variables.mask]
+            upper_bounds = upper_bounds[self._config.variables.mask]
         return lower_bounds.tolist(), upper_bounds.tolist()
 
     def _evaluate(
@@ -193,24 +191,20 @@ class NomadOptimizer(Optimizer):
             else [int(not np.isnan(objective)) for objective in objectives]
         )
 
-    def _get_parameters(self) -> list[str]:  # noqa: C901, PLR0912
-        variable_indices = self._config.variables.indices
+    def _get_parameters(  # noqa: C901, PLR0912
+        self, normalized_constraints: NormalizedConstraints | None
+    ) -> list[str]:
         dim = (
             self._config.variables.initial_values.size
-            if variable_indices is None
-            else variable_indices.size
+            if self._config.variables.mask is None
+            else self._config.variables.mask.sum()
         )
         parameters = [f"DIMENSION {dim}"]
 
-        nonlinear = self._config.nonlinear_constraints
-        non_linear_count = 0 if nonlinear is None else nonlinear.rhs_values.size
-        linear = self._config.linear_constraints
-        if linear is not None and variable_indices is not None:
-            linear = filter_linear_constraints(linear, variable_indices)
-        linear_count = 0 if linear is None else linear.rhs_values.size
-        bb_output_type: str | None = "BB_OUTPUT_TYPE OBJ" + " EB" * (
-            linear_count + non_linear_count
+        constraints = (
+            0 if normalized_constraints is None else len(normalized_constraints.is_eq)
         )
+        bb_output_type: str | None = "BB_OUTPUT_TYPE OBJ" + " EB" * constraints
         have_bb_max_block_size = False
         bb_input_type = None
 
@@ -238,8 +232,8 @@ class NomadOptimizer(Optimizer):
                 elif self._config.variables.types is not None:
                     types = (
                         self._config.variables.types
-                        if variable_indices is None
-                        else self._config.variables.types[variable_indices]
+                        if self._config.variables.mask is None
+                        else self._config.variables.types[self._config.variables.mask]
                     )
                     bb_input_type = "BB_INPUT_TYPE ("
                     for item in types:
@@ -247,7 +241,7 @@ class NomadOptimizer(Optimizer):
                     bb_input_type += " )"
 
                 if option.strip().startswith("BB_OUTPUT_TYPE"):
-                    if len(option.split()) != linear_count + non_linear_count + 2:
+                    if len(option.split()) != constraints + 2:
                         msg = (
                             "Option Error: BB_OUTPUT_TYPE specifies "
                             "incorrect number of outputs"
@@ -281,25 +275,32 @@ class NomadOptimizer(Optimizer):
 
         return parameters
 
-    def _get_constraints(self) -> None:
-        nonlinear_config = self._config.nonlinear_constraints
-        if nonlinear_config is not None and ConstraintType.EQ in nonlinear_config.types:
-            msg = "Equality constraints are not supported by NOMAD"
-            raise ConfigError(msg)
-
-        linear_config = self._config.linear_constraints
-        if linear_config is not None:
-            if ConstraintType.EQ in linear_config.types:
+    def _init_constraints(self) -> NormalizedConstraints | None:
+        lower_bounds = []
+        upper_bounds = []
+        if self._config.nonlinear_constraints is not None:
+            lower_bounds.append(self._config.nonlinear_constraints.lower_bounds)
+            upper_bounds.append(self._config.nonlinear_constraints.upper_bounds)
+        if self._config.linear_constraints is not None:
+            mask = self._config.variables.mask
+            if mask is not None:
+                offsets = np.matmul(
+                    self._config.linear_constraints.coefficients[:, ~mask],
+                    self._config.variables.initial_values[~mask],
+                )
+            else:
+                offsets = 0
+            lower_bounds.append(self._config.linear_constraints.lower_bounds - offsets)
+            upper_bounds.append(self._config.linear_constraints.upper_bounds - offsets)
+        if lower_bounds:
+            normalized_constraints = NormalizedConstraints(
+                np.concatenate(lower_bounds), np.concatenate(upper_bounds), flip=True
+            )
+            if np.any(normalized_constraints.is_eq):
                 msg = "Equality constraints are not supported by NOMAD"
                 raise ConfigError(msg)
-            if self._config.variables.indices is not None:
-                linear_config = filter_linear_constraints(
-                    linear_config, self._config.variables.indices
-                )
-            self._coefficients = linear_config.coefficients.copy()
-            self._rhs_values = linear_config.rhs_values.copy()
-            self._coefficients[linear_config.types == ConstraintType.GE] *= -1.0
-            self._rhs_values[linear_config.types == ConstraintType.GE] *= -1.0
+            return normalized_constraints
+        return None
 
     def _calculate_objective(
         self, variables: NDArray[np.float64]
@@ -312,33 +313,28 @@ class NomadOptimizer(Optimizer):
     def _calculate_constraints(
         self, variables: NDArray[np.float64]
     ) -> NDArray[np.float64]:
-        have_nonlinear = self._config.nonlinear_constraints is not None
-        have_linear = self._coefficients is not None
-        if have_nonlinear:
-            functions = self._get_functions(variables)
-            nonlinear_constraints = (
-                functions[1:] if variables.ndim == 1 else functions[:, 1:]
-            )
-        if have_linear:
-            assert self._coefficients is not None
-            linear_constraints = (
-                np.array(np.matmul(self._coefficients, variables) - self._rhs_values)
-                if variables.ndim == 1
-                else np.vstack(
-                    [
-                        np.matmul(self._coefficients, variables[idx, :])
-                        - self._rhs_values
-                        for idx in range(variables.shape[0])
-                    ],
+        if self._normalized_constraints is None:
+            return np.array([])
+        if self._normalized_constraints.constraints is None:
+            constraints = []
+            if self._config.nonlinear_constraints is not None:
+                functions = self._get_functions(variables)
+                constraints.append(
+                    (
+                        functions[1:] if variables.ndim == 1 else functions[:, 1:]
+                    ).transpose()
                 )
-            )
-        if have_nonlinear and have_linear:
-            return np.hstack((nonlinear_constraints, linear_constraints))
-        if have_nonlinear:
-            return nonlinear_constraints
-        if have_linear:
-            return linear_constraints
-        return np.array([])
+            if self._config.linear_constraints is not None:
+                coefficients = self._config.linear_constraints.coefficients
+                if self._config.variables.mask is not None:
+                    coefficients = coefficients[:, self._config.variables.mask]
+                constraints.append(np.matmul(coefficients, variables.transpose()))
+            if constraints:
+                self._normalized_constraints.set_constraints(
+                    np.concatenate(constraints, axis=0)
+                )
+        assert self._normalized_constraints.constraints is not None
+        return self._normalized_constraints.constraints.transpose()
 
     def _get_functions(self, variables: NDArray[np.float64]) -> NDArray[np.float64]:
         if (
@@ -348,6 +344,8 @@ class NomadOptimizer(Optimizer):
         ):
             self._cached_variables = None
             self._cached_function = None
+            if self._normalized_constraints is not None:
+                self._normalized_constraints.reset()
         if self._cached_function is None:
             self._cached_variables = variables.copy()
             with self._redirector.stop():
