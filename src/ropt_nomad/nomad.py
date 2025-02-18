@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Final, Generator
 import numpy as np
 import PyNomad
 from ropt.enums import VariableType
-from ropt.exceptions import ConfigError
+from ropt.exceptions import ConfigError, OptimizationAborted
 from ropt.plugins.optimizer.base import Optimizer, OptimizerCallback, OptimizerPlugin
 from ropt.plugins.optimizer.utils import (
     NormalizedConstraints,
@@ -91,6 +91,7 @@ class NomadOptimizer(Optimizer):
         self._parameters = self._get_parameters(self._normalized_constraints)
         self._cached_variables: NDArray[np.float64] | None = None
         self._cached_function: NDArray[np.float64] | None = None
+        self._exception: OptimizationAborted | None = None
         self._redirector: _Redirector
 
         _, _, self._method = self._config.optimizer.method.lower().rpartition("/")
@@ -137,6 +138,8 @@ class NomadOptimizer(Optimizer):
                 self._bounds[1],
                 self._parameters,
             )
+        if self._exception is not None:
+            raise self._exception
 
     @property
     def allow_nan(self) -> bool:
@@ -176,8 +179,16 @@ class NomadOptimizer(Optimizer):
                 for eval_point in eval_points
             ],
         )
-        objectives = self._calculate_objective(variables)
-        constraints = self._calculate_constraints(variables)
+        try:
+            objectives = self._calculate_objective(variables)
+            constraints = self._calculate_constraints(variables)
+        except OptimizationAborted as exc:
+            self._exception = exc
+            return (
+                0
+                if isinstance(block_or_eval_point, PyNomad.PyNomadEvalPoint)
+                else [0] * len(eval_points)
+            )
         for idx, eval_point in enumerate(eval_points):
             result_string = str(objectives[idx])
             if constraints.size:
