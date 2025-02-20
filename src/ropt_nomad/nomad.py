@@ -2,10 +2,7 @@
 
 from __future__ import annotations
 
-import os
-import sys
-from contextlib import contextmanager
-from typing import TYPE_CHECKING, Final, Generator
+from typing import TYPE_CHECKING, Final
 
 import numpy as np
 import PyNomad
@@ -14,60 +11,14 @@ from ropt.exceptions import ConfigError, OptimizationAborted
 from ropt.plugins.optimizer.base import Optimizer, OptimizerCallback, OptimizerPlugin
 from ropt.plugins.optimizer.utils import (
     NormalizedConstraints,
-    create_output_path,
     get_masked_linear_constraints,
 )
 
 if TYPE_CHECKING:
-    from pathlib import Path
-
     from numpy.typing import NDArray
     from ropt.config.enopt import EnOptConfig
 
-_OUTPUT_FILE: Final = "optimizer_output"
-
 _SUPPORTED_METHODS: Final = {"mads"}
-
-
-class _Redirector:
-    def __init__(self, output_file: Path | None) -> None:
-        sys.stdout.flush()
-        sys.stderr.flush()
-        self._old_stdout = os.dup(1)
-        self._old_stderr = os.dup(2)
-        self._output_file = output_file
-        self._new_stdout = (
-            os.open(os.devnull, os.O_WRONLY)
-            if output_file is None
-            else os.open(output_file, os.O_WRONLY | os.O_CREAT)
-        )
-
-    @contextmanager
-    def start(self) -> Generator[None, None, None]:
-        try:
-            sys.stdout.flush()
-            sys.stderr.flush()
-            os.dup2(self._new_stdout, 1)
-            os.dup2(self._new_stdout, 2)
-            yield
-        finally:
-            os.dup2(self._old_stdout, 1)
-            os.dup2(self._old_stderr, 2)
-            os.close(self._new_stdout)
-
-    @contextmanager
-    def stop(self) -> Generator[None, None, None]:
-        try:
-            if self._output_file is not None:
-                os.fsync(self._new_stdout)
-            os.dup2(self._old_stdout, 1)
-            os.dup2(self._old_stderr, 2)
-            yield
-        finally:
-            sys.stdout.flush()
-            sys.stderr.flush()
-            os.dup2(self._new_stdout, 1)
-            os.dup2(self._new_stdout, 2)
 
 
 class NomadOptimizer(Optimizer):
@@ -92,7 +43,6 @@ class NomadOptimizer(Optimizer):
         self._cached_variables: NDArray[np.float64] | None = None
         self._cached_function: NDArray[np.float64] | None = None
         self._exception: OptimizationAborted | None = None
-        self._redirector: _Redirector
 
         _, _, self._method = self._config.optimizer.method.lower().rpartition("/")
         if self._method == "default":
@@ -124,20 +74,13 @@ class NomadOptimizer(Optimizer):
         if self._config.variables.mask is not None:
             initial_values = initial_values[self._config.variables.mask]
 
-        output_dir = self._config.optimizer.output_dir
-        output_file: Path | None = None
-        if output_dir is not None:
-            output_file = create_output_path(_OUTPUT_FILE, output_dir, suffix=".txt")
-
-        self._redirector = _Redirector(output_file)
-        with self._redirector.start():
-            PyNomad.optimize(
-                self._evaluate,
-                initial_values.tolist(),
-                self._bounds[0],
-                self._bounds[1],
-                self._parameters,
-            )
+        PyNomad.optimize(
+            self._evaluate,
+            initial_values.tolist(),
+            self._bounds[0],
+            self._bounds[1],
+            self._parameters,
+        )
         if self._exception is not None:
             raise self._exception
 
@@ -353,12 +296,11 @@ class NomadOptimizer(Optimizer):
                 self._normalized_constraints.reset()
         if self._cached_function is None:
             self._cached_variables = variables.copy()
-            with self._redirector.stop():
-                function, _ = self._optimizer_callback(
-                    variables,
-                    return_functions=True,
-                    return_gradients=False,
-                )
+            function, _ = self._optimizer_callback(
+                variables,
+                return_functions=True,
+                return_gradients=False,
+            )
             self._cached_function = function.copy()
         return self._cached_function
 
