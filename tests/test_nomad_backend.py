@@ -1,8 +1,7 @@
-from typing import Any, cast
+from typing import Any
 
 import numpy as np
 import pytest
-from numpy.typing import NDArray
 from ropt.exceptions import ConfigError
 from ropt.plan import BasicOptimizer
 
@@ -76,9 +75,7 @@ def test_nomad_ineq_nonlinear_constraints(
     weight = 1.0 if upper_bounds == 0.4 else -1.0
     test_functions = (
         *test_functions,
-        lambda variables: cast(
-            NDArray[np.float64], weight * variables[0] + weight * variables[2]
-        ),
+        lambda variables: weight * variables[0] + weight * variables[2],
     )
     variables = BasicOptimizer(enopt_config, evaluator(test_functions)).run().variables
     assert variables is not None
@@ -104,7 +101,7 @@ def test_nomad_eq_nonlinear_constraints(
 
     test_functions = (
         *test_functions,
-        lambda variables: cast(NDArray[np.float64], variables[0] + variables[2]),
+        lambda variables: variables[0] + variables[2],
     )
     with pytest.raises(
         ConfigError,
@@ -131,7 +128,7 @@ def test_nomad_ineq_nonlinear_constraints_two_sided(
         enopt_config["optimizer"]["options"] = ["BB_MAX_BLOCK_SIZE 4"]
     test_functions = (
         *test_functions,
-        lambda variables: cast(NDArray[np.float64], variables[0] + variables[2]),
+        lambda variables: variables[0] + variables[2],
     )
 
     variables = BasicOptimizer(enopt_config, evaluator(test_functions)).run().variables
@@ -252,9 +249,7 @@ def test_nomad_bb_output_type(
     weight = 1.0 if upper_bounds == 0.4 else -1.0
     test_functions = (
         *test_functions,
-        lambda variables: cast(
-            NDArray[np.float64], weight * variables[0] + weight * variables[2]
-        ),
+        lambda variables: weight * variables[0] + weight * variables[2],
     )
     variables = BasicOptimizer(enopt_config, evaluator(test_functions)).run().variables
     assert variables is not None
