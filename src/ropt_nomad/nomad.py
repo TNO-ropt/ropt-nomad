@@ -308,8 +308,9 @@ class NomadOptimizer(Optimizer):
 class NomadOptimizerPlugin(OptimizerPlugin):
     """Nomad optimizer plugin class."""
 
+    @classmethod
     def create(
-        self, config: EnOptConfig, optimizer_callback: OptimizerCallback
+        cls, config: EnOptConfig, optimizer_callback: OptimizerCallback
     ) -> NomadOptimizer:
         """Initialize the optimizer plugin.
 
@@ -319,7 +320,8 @@ class NomadOptimizerPlugin(OptimizerPlugin):
         """
         return NomadOptimizer(config, optimizer_callback)
 
-    def is_supported(self, method: str) -> bool:
+    @classmethod
+    def is_supported(cls, method: str) -> bool:
         """Check if a method is supported.
 
         See the [ropt.plugins.optimizer.base.OptimizerPlugin][] abstract base class.
