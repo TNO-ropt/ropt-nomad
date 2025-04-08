@@ -2,10 +2,14 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Final
+import re
+from pathlib import Path
+from typing import TYPE_CHECKING, Annotated, Any, Final, Literal
 
 import numpy as np
 import PyNomad
+from pydantic import Field
+from ropt.config.options import OptionsSchemaModel
 from ropt.enums import VariableType
 from ropt.exceptions import ConfigError, OptimizationAborted
 from ropt.plugins.optimizer.base import Optimizer, OptimizerCallback, OptimizerPlugin
@@ -22,7 +26,27 @@ _SUPPORTED_METHODS: Final = {"mads"}
 
 
 class NomadOptimizer(Optimizer):
-    """Backend class for optimization via nomad."""
+    """Nomad optimization backend for ropt.
+
+    This class provides an interface to the `MADS` optimization algorithm from
+    [`Nomad`](https://nomad-4-user-guide.readthedocs.io/en/latest/index.html),
+    enabling their its within `ropt`.
+
+    To select the `MADS` optimizer, set the `method` field within the
+    [`optimizer`][ropt.config.enopt.OptimizerConfig] section of the
+    [`EnOptConfig`][ropt.config.enopt.EnOptConfig] configuration object to
+    `mads`. Most general options defined in the
+    [`EnOptConfig`][ropt.config.enopt.EnOptConfig] object are supported. For
+    algorithm-specific options, use the `options` dictionary within the
+    [`optimizer`][ropt.config.enopt.OptimizerConfig] section.
+
+    The table below lists the `MADS`-specific options that are supported. Click
+    on the method name to consult the
+    [`Nomad`](https://nomad-4-user-guide.readthedocs.io/en/latest/index.html)
+    keyword documentation:
+
+    --8<-- "nomad.md"
+    """
 
     def __init__(
         self,
@@ -166,25 +190,21 @@ class NomadOptimizer(Optimizer):
         if self._config.optimizer.max_iterations is not None:
             parameters.append(f"MAX_ITERATIONS {self._config.optimizer.max_iterations}")
 
+        forbidden = (
+            "DIMENSION",
+            "MAX_ITERATIONS",
+            "BB_INPUT_TYPE",
+            "LOWER_BOUND",
+            "UPPER_BOUND",
+        )
+
         if isinstance(self._config.optimizer.options, list):
             for option in self._config.optimizer.options:
-                if option.strip().startswith("DIMENSION"):
-                    msg = "Option Error: DIMENSION cannot be used"
+                if option.strip().startswith(forbidden):
+                    msg = f"Option not supported: {option.strip()}"
                     raise ConfigError(msg)
 
-                if (
-                    self._config.optimizer.max_iterations is not None
-                    and option.strip().startswith("MAX_ITERATIONS")
-                ):
-                    msg = (
-                        "Option Error: MAX_ITERATIONS, maximum iterations "
-                        "already configured"
-                    )
-                    raise ConfigError(msg)
-
-                if option.strip().startswith("BB_INPUT_TYPE"):
-                    bb_input_type = option.strip()
-                elif self._config.variables.types is not None:
+                if self._config.variables.types is not None:
                     types = (
                         self._config.variables.types
                         if self._config.variables.mask is None
@@ -329,3 +349,56 @@ class NomadOptimizerPlugin(OptimizerPlugin):
         # noqa
         """
         return method.lower() in (_SUPPORTED_METHODS | {"default"})
+
+    @classmethod
+    def validate_options(
+        cls, method: str, options: dict[str, Any] | list[str] | None
+    ) -> None:
+        """Validate the options of a given method.
+
+        See the [ropt.plugins.optimizer.base.OptimizerPlugin][] abstract base class.
+
+        # noqa
+        """
+        if options is not None:
+            if isinstance(options, dict):
+                msg = "The Nomad optimizer options must be a list of strings"
+                raise TypeError(msg)
+            options_dict: dict[str, Any] = {}
+            for option in options:
+                split_option = re.split(r"\s+", option.strip(), maxsplit=1)
+                options_dict[split_option[0]] = (
+                    split_option[1]
+                    if len(split_option) > 1 and split_option[1].strip()
+                    else "yes"
+                )
+            OptionsSchemaModel.model_validate(_OPTIONS_SCHEMA).get_options_model(
+                method
+            ).model_validate(options_dict)
+
+
+_OPTIONS_SCHEMA: dict[str, Any] = {
+    "methods": {
+        "mads": {
+            "options": {
+                "BB_OUTPUT_TYPE": Literal["EB", "F", "OBJ", "PB", "CSTR"],
+                "BB_MAX_BLOCK_SIZE": Annotated[int, Field(gt=0)],
+                "MAX_BB_EVAL": int,
+                "MAX_EVAL": int,
+                "SEED": int,
+                "LH_SEARCH": str,
+                "DISPLAY_ALL_EVAL": str,
+                "DISPLAY_DEGREE": Annotated[int, Field(ge=0, le=3)],
+                "DISPLAY_STATS": str,
+            },
+            "url": "https://nomad-4-user-guide.readthedocs.io/en/latest/Appendix.html#complete-list-of-parameters",
+        },
+    }
+}
+
+
+if __name__ == "__main__":
+    from ropt.config.options import gen_options_table
+
+    with Path("nomad.md").open("w", encoding="utf-8") as fp:
+        fp.write(gen_options_table(_OPTIONS_SCHEMA))

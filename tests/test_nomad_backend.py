@@ -2,8 +2,10 @@ from typing import Any
 
 import numpy as np
 import pytest
+from pydantic import ValidationError
 from ropt.exceptions import ConfigError
 from ropt.plan import BasicOptimizer
+from ropt.plugins import PluginManager
 
 
 @pytest.fixture(name="enopt_config")
@@ -20,6 +22,37 @@ def enopt_config_fixture() -> dict[str, Any]:
             "weights": [0.75, 0.25],
         },
     }
+
+
+def test_nomad_invalid_options(enopt_config: Any) -> None:
+    enopt_config["optimizer"]["method"] = "mads"
+    enopt_config["optimizer"]["options"] = [
+        "BB_MAX_BLOCK_SIZE 10",
+        "BB_OUTPUT_TYPE OBJ",
+    ]
+    PluginManager().get_plugin("optimizer", "mads").validate_options(
+        "mads", enopt_config["optimizer"]["options"]
+    )
+
+    enopt_config["optimizer"]["options"] = [
+        "BB_MAX_BLOCK_SIZE 10",
+        "BB_OUTPUT_TYPE FOO",
+    ]
+    with pytest.raises(ValidationError, match=r"Input should be 'EB',"):
+        PluginManager().get_plugin("optimizer", "mads").validate_options(
+            "mads", enopt_config["optimizer"]["options"]
+        )
+
+    enopt_config["optimizer"]["options"] = [
+        "DIMENSION 10",
+        "FOO FOO",
+    ]
+    with pytest.raises(
+        ValidationError, match=r"Unknown or unsupported option\(s\): `DIMENSION`, `FOO`"
+    ):
+        PluginManager().get_plugin("optimizer", "mads").validate_options(
+            "mads", enopt_config["optimizer"]["options"]
+        )
 
 
 @pytest.mark.parametrize("parallel", [False, True])
@@ -211,7 +244,7 @@ def test_nomad_dimension_keyword(enopt_config: dict[str, Any], evaluator: Any) -
     enopt_config["variables"]["lower_bounds"] = [-1.0, -1.0, -1.0]
     enopt_config["variables"]["upper_bounds"] = [1.0, 1.0, 1.0]
     enopt_config["optimizer"]["options"] = ["DIMENSION 4"]
-    with pytest.raises(ConfigError, match="Option Error: DIMENSION cannot be used"):
+    with pytest.raises(ConfigError, match="Option not supported: DIMENSION 4"):
         BasicOptimizer(enopt_config, evaluator()).run()
 
 
@@ -223,7 +256,7 @@ def test_nomad_max_iterations_keyword(
     enopt_config["optimizer"]["options"] = ["MAX_ITERATIONS 4"]
     with pytest.raises(
         ConfigError,
-        match="Option Error: MAX_ITERATIONS, maximum iterations already configured",
+        match="Option not supported: MAX_ITERATIONS 4",
     ):
         BasicOptimizer(enopt_config, evaluator()).run()
 
