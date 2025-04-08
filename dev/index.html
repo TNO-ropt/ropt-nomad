@@ -424,17 +424,18 @@ Installing <code>ropt-nomad</code> makes <code>MADS</code> directly available wi
 
 
         <p>Nomad optimization backend for ropt.</p>
-<p>This class provides an interface to several optimization algorithms from
-<a href="https://nomad-4-user-guide.readthedocs.io/en/latest/index.html"><code>Nomad</code></a>, enabling their use within <code>ropt</code>.</p>
-<p>To select an optimizer, set the <code>method</code> field within the
+<p>This class provides an interface to the <code>MADS</code> optimization algorithm from
+<a href="https://nomad-4-user-guide.readthedocs.io/en/latest/index.html"><code>Nomad</code></a>,
+enabling their its within <code>ropt</code>.</p>
+<p>To select the <code>MADS</code> optimizer, set the <code>method</code> field within the
 <a class="autorefs autorefs-external" href="https://tno-ropt.github.io/ropt/latest/reference/enopt_config/#ropt.config.enopt.OptimizerConfig"><code>optimizer</code></a> section of the
-<a class="autorefs autorefs-external" href="https://tno-ropt.github.io/ropt/latest/reference/enopt_config/#ropt.config.enopt.EnOptConfig"><code>EnOptConfig</code></a> configuration object to the
-desired algorithm's name. Most methods support the general options defined
-in the <a class="autorefs autorefs-external" href="https://tno-ropt.github.io/ropt/latest/reference/enopt_config/#ropt.config.enopt.EnOptConfig"><code>EnOptConfig</code></a> object. For
+<a class="autorefs autorefs-external" href="https://tno-ropt.github.io/ropt/latest/reference/enopt_config/#ropt.config.enopt.EnOptConfig"><code>EnOptConfig</code></a> configuration object to
+<code>mads</code>. Most general options defined in the
+<a class="autorefs autorefs-external" href="https://tno-ropt.github.io/ropt/latest/reference/enopt_config/#ropt.config.enopt.EnOptConfig"><code>EnOptConfig</code></a> object are supported. For
 algorithm-specific options, use the <code>options</code> dictionary within the
 <a class="autorefs autorefs-external" href="https://tno-ropt.github.io/ropt/latest/reference/enopt_config/#ropt.config.enopt.OptimizerConfig"><code>optimizer</code></a> section.</p>
-<p>The table below lists the included methods together with the method-specific
-options that are supported. Click on the method name to consult the
+<p>The table below lists the <code>MADS</code>-specific options that are supported. Click
+on the method name to consult the
 <a href="https://nomad-4-user-guide.readthedocs.io/en/latest/index.html"><code>Nomad</code></a>
 keyword documentation:</p>
 <table>
