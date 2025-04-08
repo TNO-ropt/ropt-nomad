@@ -308,6 +308,15 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#usage" class="md-nav__link">
+    <span class="md-ellipsis">
+      Usage
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#reference" class="md-nav__link">
     <span class="md-ellipsis">
       Reference
@@ -360,6 +369,15 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#usage" class="md-nav__link">
+    <span class="md-ellipsis">
+      Usage
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#reference" class="md-nav__link">
     <span class="md-ellipsis">
       Reference
@@ -404,6 +422,23 @@ integrates the <code>MADS</code> optimization algorithm from the
 robust optimization framework designed for both continuous and discrete
 optimization workflows and is extensible through its plugin architecture.
 Installing <code>ropt-nomad</code> makes <code>MADS</code> directly available within <code>ropt</code>.</p>
+<h2 id="usage">Usage</h2>
+<p>An optimization by <code>ropt</code> using the plugin works mostly as any other
+optimization run. However, there are a few things to consider:</p>
+<ol>
+<li>Gradients are not used, any specifications relating to gradient calculations
+   in <code>ropt</code> are ignored.</li>
+<li>The <code>tolerance</code> optimization parameter, which can be specified in the
+   optimization section is ignored.</li>
+<li>Only inequality constraints are supported by <code>NOMAD</code>.</li>
+<li>Linear and non-linear constraints are both supported. Linear constraints are
+   not supported directly, but are internally converted to non-linear
+   constraints.</li>
+<li>Some additional <code>Nomad</code> options can be passed as a list of strings via the
+   <code>options</code> field in the optimizer configuration. Refer to the documentation of
+   the <a class="autorefs autorefs-internal" title="            ropt_nomad.nomad.NomadOptimizer" href="#ropt_nomad.nomad.NomadOptimizer"><code>NomadOptimizer</code></a> class for supported
+   options.</li>
+</ol>
 <h2 id="reference">Reference</h2>
 
 
