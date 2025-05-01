@@ -250,23 +250,32 @@ class NomadOptimizer(Optimizer):
 
         return parameters
 
-    def _init_constraints(self) -> NormalizedConstraints | None:
-        lower_bounds = []
-        upper_bounds = []
+    def _get_constraint_bounds(
+        self,
+    ) -> tuple[NDArray[np.float64], NDArray[np.float64]] | None:
+        bounds = []
         if self._config.nonlinear_constraints is not None:
-            lower_bounds.append(self._config.nonlinear_constraints.lower_bounds)
-            upper_bounds.append(self._config.nonlinear_constraints.upper_bounds)
+            bounds.append(self._config.nonlinear_constraints.get_bounds())
+        if self._linear_constraint_bounds is not None:
+            bounds.append(self._linear_constraint_bounds)
+        if bounds:
+            lower_bounds, upper_bounds = zip(*bounds, strict=True)
+            return np.concatenate(lower_bounds), np.concatenate(upper_bounds)
+        return None
+
+    def _init_constraints(self) -> NormalizedConstraints | None:
         self._lin_coef: NDArray[np.float64] | None = None
+        self._linear_constraint_bounds: (
+            tuple[NDArray[np.float64], NDArray[np.float64]] | None
+        ) = None
         if self._config.linear_constraints is not None:
             self._lin_coef, lin_lower, lin_upper = get_masked_linear_constraints(
                 self._config
             )
-            lower_bounds.append(lin_lower)
-            upper_bounds.append(lin_upper)
-        if lower_bounds:
-            normalized_constraints = NormalizedConstraints(
-                np.concatenate(lower_bounds), np.concatenate(upper_bounds), flip=True
-            )
+            self._linear_constraint_bounds = (lin_lower, lin_upper)
+        if (bounds := self._get_constraint_bounds()) is not None:
+            normalized_constraints = NormalizedConstraints(flip=True)
+            normalized_constraints.set_bounds(*bounds)
             if np.any(normalized_constraints.is_eq):
                 msg = "Equality constraints are not supported by NOMAD"
                 raise ConfigError(msg)
@@ -321,6 +330,11 @@ class NomadOptimizer(Optimizer):
                 return_functions=True,
                 return_gradients=False,
             )
+            # The optimizer callback may change non-linear constraint bounds:
+            if self._normalized_constraints is not None:
+                bounds = self._get_constraint_bounds()
+                assert bounds is not None
+                self._normalized_constraints.set_bounds(*bounds)
             self._cached_function = function.copy()
         return self._cached_function
 
