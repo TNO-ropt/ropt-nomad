@@ -10,13 +10,13 @@ from ropt.results import FunctionResults, Results
 
 CONFIG: dict[str, Any] = {
     "variables": {
-        "initial_values": 2 * [0.3],
-        "lower_bounds": [0.2, 0.1],
-        "upper_bounds": [2.1, 2.2],
+        "initial_values": 2 * [0.4],
+        "lower_bounds": [0.4, 0.3],
+        "upper_bounds": [1.7, 1.8],
     },
     "optimizer": {
         "method": "nomad/default",
-        "max_iterations": 20,
+        "max_iterations": 10,
         "output_dir": ".",
     },
 }

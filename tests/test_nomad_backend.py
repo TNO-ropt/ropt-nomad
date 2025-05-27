@@ -316,9 +316,9 @@ def test_nomad_parallel_no_bb_max_block_size(
 def test_nomad_evaluation_failure(
     enopt_config: dict[str, Any], evaluator: Any, parallel: bool, test_functions: Any
 ) -> None:
-    enopt_config["variables"]["lower_bounds"] = [0.15, -1.0, -1.0]
-    enopt_config["variables"]["upper_bounds"] = [1.0, 1.0, 0.2]
-    enopt_config["optimizer"]["max_iterations"] = 3
+    enopt_config["variables"]["lower_bounds"] = [0.15, -0.5, -1.0]
+    enopt_config["variables"]["upper_bounds"] = [1.0, 0.5, 0.2]
+    enopt_config["optimizer"]["max_iterations"] = 4
     enopt_config["realizations"] = {"realization_min_success": 0}
     enopt_config["optimizer"]["parallel"] = parallel
     if parallel:
