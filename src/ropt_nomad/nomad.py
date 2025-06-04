@@ -20,7 +20,7 @@ from ropt.plugins.optimizer.utils import (
 
 if TYPE_CHECKING:
     from numpy.typing import NDArray
-    from ropt.config.enopt import EnOptConfig
+    from ropt.config import EnOptConfig
     from ropt.optimization import OptimizerCallback
 
 _SUPPORTED_METHODS: Final = {"mads"}
@@ -34,12 +34,12 @@ class NomadOptimizer(Optimizer):
     enabling their its within `ropt`.
 
     To select the `MADS` optimizer, set the `method` field within the
-    [`optimizer`][ropt.config.enopt.OptimizerConfig] section of the
-    [`EnOptConfig`][ropt.config.enopt.EnOptConfig] configuration object to
+    [`optimizer`][ropt.config.OptimizerConfig] section of the
+    [`EnOptConfig`][ropt.config.EnOptConfig] configuration object to
     `mads`. Most general options defined in the
-    [`EnOptConfig`][ropt.config.enopt.EnOptConfig] object are supported. For
+    [`EnOptConfig`][ropt.config.EnOptConfig] object are supported. For
     algorithm-specific options, use the `options` dictionary within the
-    [`optimizer`][ropt.config.enopt.OptimizerConfig] section.
+    [`optimizer`][ropt.config.OptimizerConfig] section.
 
     The table below lists the `MADS`-specific options that are supported. Click
     on the method name to consult the
