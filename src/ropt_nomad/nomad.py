@@ -96,8 +96,7 @@ class NomadOptimizer(Optimizer):
         self._cached_variables = None
         self._cached_function = None
 
-        if self._config.variables.mask is not None:
-            initial_values = initial_values[self._config.variables.mask]
+        initial_values = initial_values[self._config.variables.mask]
 
         PyNomad.optimize(
             self._evaluate,
@@ -120,11 +119,8 @@ class NomadOptimizer(Optimizer):
         return True
 
     def _get_bounds(self) -> tuple[list[float], list[float]]:
-        lower_bounds = self._config.variables.lower_bounds
-        upper_bounds = self._config.variables.upper_bounds
-        if self._config.variables.mask is not None:
-            lower_bounds = lower_bounds[self._config.variables.mask]
-            upper_bounds = upper_bounds[self._config.variables.mask]
+        lower_bounds = self._config.variables.lower_bounds[self._config.variables.mask]
+        upper_bounds = self._config.variables.upper_bounds[self._config.variables.mask]
         return lower_bounds.tolist(), upper_bounds.tolist()
 
     def _evaluate(
@@ -171,14 +167,10 @@ class NomadOptimizer(Optimizer):
             else [int(not np.isnan(objective)) for objective in objectives]
         )
 
-    def _get_parameters(  # noqa: C901, PLR0912
+    def _get_parameters(  # noqa: C901
         self, normalized_constraints: NormalizedConstraints | None
     ) -> list[str]:
-        dim = (
-            self._config.variables.initial_values.size
-            if self._config.variables.mask is None
-            else self._config.variables.mask.sum()
-        )
+        dim = self._config.variables.mask.sum()
         parameters = [f"DIMENSION {dim}"]
 
         constraints = (
@@ -205,16 +197,11 @@ class NomadOptimizer(Optimizer):
                     msg = f"Option not supported: {option.strip()}"
                     raise ConfigError(msg)
 
-                if self._config.variables.types is not None:
-                    types = (
-                        self._config.variables.types
-                        if self._config.variables.mask is None
-                        else self._config.variables.types[self._config.variables.mask]
-                    )
-                    bb_input_type = "BB_INPUT_TYPE ("
-                    for item in types:
-                        bb_input_type += " I" if item == VariableType.INTEGER else " R"
-                    bb_input_type += " )"
+                types = self._config.variables.types[self._config.variables.mask]
+                bb_input_type = "BB_INPUT_TYPE ("
+                for item in types:
+                    bb_input_type += " I" if item == VariableType.INTEGER else " R"
+                bb_input_type += " )"
 
                 if option.strip().startswith("BB_OUTPUT_TYPE"):
                     if len(option.split()) != constraints + 2:
