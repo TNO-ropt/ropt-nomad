@@ -11,7 +11,7 @@ import PyNomad
 from pydantic import Field
 from ropt.config.options import OptionsSchemaModel
 from ropt.enums import VariableType
-from ropt.exceptions import ConfigError, OptimizationAborted
+from ropt.exceptions import ConfigError, StepAborted
 from ropt.plugins.optimizer.base import Optimizer, OptimizerPlugin
 from ropt.plugins.optimizer.utils import (
     NormalizedConstraints,
@@ -67,7 +67,7 @@ class NomadOptimizer(Optimizer):
         self._parameters = self._get_parameters(self._normalized_constraints)
         self._cached_variables: NDArray[np.float64] | None = None
         self._cached_function: NDArray[np.float64] | None = None
-        self._exception: OptimizationAborted | None = None
+        self._exception: StepAborted | None = None
 
         _, _, self._method = self._config.optimizer.method.lower().rpartition("/")
         if self._method == "default":
@@ -150,7 +150,7 @@ class NomadOptimizer(Optimizer):
         try:
             objectives = self._calculate_objective(variables)
             constraints = self._calculate_constraints(variables)
-        except OptimizationAborted as exc:
+        except StepAborted as exc:
             self._exception = exc
             return (
                 0
