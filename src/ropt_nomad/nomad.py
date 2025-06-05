@@ -62,9 +62,6 @@ class NomadOptimizer(Optimizer):
         """
         self._config = enopt_config
         self._optimizer_callback = optimizer_callback
-        self._bounds = self._get_bounds()
-        self._normalized_constraints = self._init_constraints()
-        self._parameters = self._get_parameters(self._normalized_constraints)
         self._cached_variables: NDArray[np.float64] | None = None
         self._cached_function: NDArray[np.float64] | None = None
         self._exception: StepAborted | None = None
@@ -96,11 +93,13 @@ class NomadOptimizer(Optimizer):
         self._cached_variables = None
         self._cached_function = None
 
-        initial_values = initial_values[self._config.variables.mask]
+        self._bounds = self._get_bounds()
+        self._normalized_constraints = self._init_constraints(initial_values)
+        self._parameters = self._get_parameters(self._normalized_constraints)
 
         PyNomad.optimize(
             self._evaluate,
-            initial_values.tolist(),
+            initial_values[self._config.variables.mask].tolist(),
             self._bounds[0],
             self._bounds[1],
             self._parameters,
@@ -251,14 +250,16 @@ class NomadOptimizer(Optimizer):
             return np.concatenate(lower_bounds), np.concatenate(upper_bounds)
         return None
 
-    def _init_constraints(self) -> NormalizedConstraints | None:
+    def _init_constraints(
+        self, initial_values: NDArray[np.float64]
+    ) -> NormalizedConstraints | None:
         self._lin_coef: NDArray[np.float64] | None = None
         self._linear_constraint_bounds: (
             tuple[NDArray[np.float64], NDArray[np.float64]] | None
         ) = None
         if self._config.linear_constraints is not None:
             self._lin_coef, lin_lower, lin_upper = get_masked_linear_constraints(
-                self._config
+                self._config, initial_values
             )
             self._linear_constraint_bounds = (lin_lower, lin_upper)
         nonlinear_bounds = (
