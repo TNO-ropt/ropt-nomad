@@ -8,9 +8,11 @@ from ropt.evaluator import EvaluatorContext, EvaluatorResult
 from ropt.plan import BasicOptimizer
 from ropt.results import FunctionResults, Results
 
+initial_values = 2 * [0.4]
+
 CONFIG: dict[str, Any] = {
     "variables": {
-        "initial_values": 2 * [0.4],
+        "variable_count": len(initial_values),
         "lower_bounds": [0.4, 0.3],
         "upper_bounds": [1.7, 1.8],
     },
@@ -56,7 +58,10 @@ def report(results: tuple[Results, ...]) -> None:
 def run_optimization(config: dict[str, Any]) -> None:
     """Run the optimization."""
     optimal_result = (
-        BasicOptimizer(config, rosenbrock).set_results_callback(report).run().results
+        BasicOptimizer(config, rosenbrock)
+        .set_results_callback(report)
+        .run(initial_values)
+        .results
     )
     assert optimal_result is not None
     assert optimal_result.functions is not None
