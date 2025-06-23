@@ -6,7 +6,6 @@ from numpy.typing import ArrayLike, NDArray
 from pydantic import ValidationError
 from ropt.config import EnOptConfig
 from ropt.enums import EventType
-from ropt.exceptions import ConfigError
 from ropt.plan import BasicOptimizer, Event
 from ropt.plugins import PluginManager
 from ropt.results import FunctionResults
@@ -48,7 +47,20 @@ def test_nomad_invalid_options(enopt_config: Any) -> None:
         "BB_MAX_BLOCK_SIZE 10",
         "BB_OUTPUT_TYPE FOO",
     ]
-    with pytest.raises(ValidationError, match=r"Input should be 'EB',"):
+    with pytest.raises(
+        ValueError, match=r"Option Error: First argument of BB_OUTPUT_TYPE must be OBJ"
+    ):
+        PluginManager().get_plugin("optimizer", "mads").validate_options(
+            "mads", enopt_config["optimizer"]["options"]
+        )
+
+    enopt_config["optimizer"]["options"] = [
+        "BB_MAX_BLOCK_SIZE 10",
+        "BB_OUTPUT_TYPE OBJ FOO",
+    ]
+    with pytest.raises(
+        ValueError, match=r"Invalid output type\(s\) in BB_OUTPUT_TYPE: {'FOO'}"
+    ):
         PluginManager().get_plugin("optimizer", "mads").validate_options(
             "mads", enopt_config["optimizer"]["options"]
         )
@@ -58,7 +70,7 @@ def test_nomad_invalid_options(enopt_config: Any) -> None:
         "FOO FOO",
     ]
     with pytest.raises(
-        ValidationError, match=r"Unknown or unsupported option\(s\): `DIMENSION`, `FOO`"
+        ValueError, match=r"Unknown or unsupported option\(s\): `DIMENSION`, `FOO`"
     ):
         PluginManager().get_plugin("optimizer", "mads").validate_options(
             "mads", enopt_config["optimizer"]["options"]
@@ -151,7 +163,7 @@ def test_nomad_eq_nonlinear_constraints(
         lambda variables: variables[0] + variables[2],
     )
     with pytest.raises(
-        ConfigError,
+        ValueError,
         match="Equality constraints are not supported by NOMAD",
     ):
         BasicOptimizer(enopt_config, evaluator(test_functions)).run(initial_values)
@@ -217,7 +229,7 @@ def test_nomad_eq_linear_constraints(
         enopt_config["optimizer"]["options"] = ["BB_MAX_BLOCK_SIZE 4"]
 
     with pytest.raises(
-        ConfigError, match="Equality constraints are not supported by NOMAD"
+        ValueError, match="Equality constraints are not supported by NOMAD"
     ):
         BasicOptimizer(enopt_config, evaluator()).run(initial_values)
 
@@ -252,7 +264,9 @@ def test_nomad_le_ge_linear_constraints_two_sided(
 
 def test_nomad_dimension_keyword(enopt_config: dict[str, Any], evaluator: Any) -> None:
     enopt_config["optimizer"]["options"] = ["DIMENSION 4"]
-    with pytest.raises(ConfigError, match="Option not supported: DIMENSION 4"):
+    with pytest.raises(
+        ValidationError, match=r"Unknown or unsupported option\(s\): `DIMENSION`"
+    ):
         BasicOptimizer(enopt_config, evaluator()).run(initial_values)
 
 
@@ -261,8 +275,8 @@ def test_nomad_max_iterations_keyword(
 ) -> None:
     enopt_config["optimizer"]["options"] = ["MAX_ITERATIONS 4"]
     with pytest.raises(
-        ConfigError,
-        match="Option not supported: MAX_ITERATIONS 4",
+        ValidationError,
+        match=r"Unknown or unsupported option\(s\): `MAX_ITERATIONS`",
     ):
         BasicOptimizer(enopt_config, evaluator()).run(initial_values)
 
@@ -298,7 +312,7 @@ def test_nomad_bb_output_type(
 
     enopt_config["optimizer"]["options"] = ["BB_OUTPUT_TYPE OBJ PB PB"]
     with pytest.raises(
-        ConfigError,
+        ValueError,
         match="Option Error: BB_OUTPUT_TYPE specifies incorrect number of outputs",
     ):
         BasicOptimizer(enopt_config, evaluator()).run(initial_values)
@@ -309,7 +323,7 @@ def test_nomad_bb_max_block_size_no_parallel(
 ) -> None:
     enopt_config["optimizer"]["options"] = ["BB_MAX_BLOCK_SIZE 4"]
     with pytest.raises(
-        ConfigError,
+        ValueError,
         match="Option Error: BB_MAX_BLOCK_SIZE may only be specified",
     ):
         BasicOptimizer(enopt_config, evaluator()).run(initial_values)
@@ -320,7 +334,7 @@ def test_nomad_parallel_no_bb_max_block_size(
 ) -> None:
     enopt_config["optimizer"]["parallel"] = True
     with pytest.raises(
-        ConfigError,
+        ValueError,
         match="Option Error: BB_MAX_BLOCK_SIZE must be specified",
     ):
         BasicOptimizer(enopt_config, evaluator()).run(initial_values)

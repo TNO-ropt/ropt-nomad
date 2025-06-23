@@ -4,14 +4,14 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import TYPE_CHECKING, Annotated, Any, Final, Literal
+from typing import TYPE_CHECKING, Annotated, Any, Final
 
 import numpy as np
 import PyNomad
 from pydantic import Field
 from ropt.config.options import OptionsSchemaModel
 from ropt.enums import VariableType
-from ropt.exceptions import ConfigError, StepAborted
+from ropt.exceptions import StepAborted
 from ropt.plugins.optimizer.base import Optimizer, OptimizerPlugin
 from ropt.plugins.optimizer.utils import (
     NormalizedConstraints,
@@ -182,20 +182,8 @@ class NomadOptimizer(Optimizer):
         if self._config.optimizer.max_iterations is not None:
             parameters.append(f"MAX_ITERATIONS {self._config.optimizer.max_iterations}")
 
-        forbidden = (
-            "DIMENSION",
-            "MAX_ITERATIONS",
-            "BB_INPUT_TYPE",
-            "LOWER_BOUND",
-            "UPPER_BOUND",
-        )
-
         if isinstance(self._config.optimizer.options, list):
             for option in self._config.optimizer.options:
-                if option.strip().startswith(forbidden):
-                    msg = f"Option not supported: {option.strip()}"
-                    raise ConfigError(msg)
-
                 types = self._config.variables.types[self._config.variables.mask]
                 bb_input_type = "BB_INPUT_TYPE ("
                 for item in types:
@@ -204,20 +192,17 @@ class NomadOptimizer(Optimizer):
 
                 if option.strip().startswith("BB_OUTPUT_TYPE"):
                     if len(option.split()) != constraints + 2:
-                        msg = (
-                            "Option Error: BB_OUTPUT_TYPE specifies "
-                            "incorrect number of outputs"
-                        )
-                        raise ConfigError(msg)
+                        msg = "Option Error: BB_OUTPUT_TYPE specifies incorrect number of outputs"
+                        raise ValueError(msg)
                     bb_output_type = None
 
                 if option.strip().startswith("BB_MAX_BLOCK_SIZE"):
                     if self._config.optimizer.parallel is False:
                         msg = (
-                            "Option Error: BB_MAX_BLOCK_SIZE may only be specified "
+                            "Option Error: BB_MAX_BLOCK_SIZE may only be specified  "
                             "if the parallel option is True"
                         )
-                        raise ConfigError(msg)
+                        raise ValueError(msg)
                     have_bb_max_block_size = True
 
             parameters.extend(self._config.optimizer.options)
@@ -227,7 +212,7 @@ class NomadOptimizer(Optimizer):
                 "Option Error: BB_MAX_BLOCK_SIZE must be specified "
                 "if the parallel option is True"
             )
-            raise ConfigError(msg)
+            raise ValueError(msg)
 
         if bb_input_type is not None:
             parameters = [bb_input_type, *parameters]
@@ -275,7 +260,7 @@ class NomadOptimizer(Optimizer):
             normalized_constraints.set_bounds(*bounds)
             if np.any(normalized_constraints.is_eq):
                 msg = "Equality constraints are not supported by NOMAD"
-                raise ConfigError(msg)
+                raise ValueError(msg)
             return normalized_constraints
         return None
 
@@ -391,12 +376,32 @@ class NomadOptimizerPlugin(OptimizerPlugin):
                 method
             ).model_validate(options_dict)
 
+            for option in options:
+                if option.strip().startswith("BB_OUTPUT_TYPE"):
+                    output_types = option.split()
+                    if output_types[1] != "OBJ":
+                        msg = (
+                            "Option Error: First argument of BB_OUTPUT_TYPE must be OBJ"
+                        )
+                        raise ValueError(msg)
+                    invalid_types = {
+                        output_type
+                        for output_type in output_types[2:]
+                        if output_type not in {"EB", "F", "PB", "CSTR"}
+                    }
+                    if invalid_types:
+                        msg = (
+                            "Option Error: Invalid output type(s) in "
+                            f"BB_OUTPUT_TYPE: {invalid_types}"
+                        )
+                        raise ValueError(msg)
+
 
 _OPTIONS_SCHEMA: dict[str, Any] = {
     "methods": {
         "mads": {
             "options": {
-                "BB_OUTPUT_TYPE": Literal["EB", "F", "OBJ", "PB", "CSTR"],
+                "BB_OUTPUT_TYPE": str,
                 "BB_MAX_BLOCK_SIZE": Annotated[int, Field(gt=0)],
                 "MAX_BB_EVAL": int,
                 "MAX_EVAL": int,
