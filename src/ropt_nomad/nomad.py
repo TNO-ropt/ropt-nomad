@@ -361,7 +361,7 @@ class NomadOptimizerPlugin(OptimizerPlugin):
         # noqa
         """
         if options is not None:
-            if isinstance(options, dict):
+            if not isinstance(options, list):
                 msg = "The Nomad optimizer options must be a list of strings"
                 raise TypeError(msg)
             options_dict: dict[str, Any] = {}
