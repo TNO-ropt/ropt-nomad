@@ -24,6 +24,7 @@ if TYPE_CHECKING:
     from ropt.optimization import OptimizerCallback
 
 _SUPPORTED_METHODS: Final = {"mads"}
+_DEFAULT_METHOD: Final = "mads"
 
 
 class NomadOptimizer(Optimizer):
@@ -68,7 +69,7 @@ class NomadOptimizer(Optimizer):
 
         _, _, self._method = self._config.optimizer.method.lower().rpartition("/")
         if self._method == "default":
-            self._method = "mads"
+            self._method = _DEFAULT_METHOD
         if self._method not in _SUPPORTED_METHODS:
             msg = f"NOMAD optimizer algorithm {self._method} is not supported"
             raise NotImplementedError(msg)
@@ -373,7 +374,7 @@ class NomadOptimizerPlugin(OptimizerPlugin):
                     else "yes"
                 )
             OptionsSchemaModel.model_validate(_OPTIONS_SCHEMA).get_options_model(
-                method
+                _DEFAULT_METHOD if method == "default" else method
             ).model_validate(options_dict)
 
             for option in options:
