@@ -80,8 +80,8 @@ strict = true
 module = ["PyNomad.*"]
 ignore_missing_imports = true
 
-[tool.uv]
-dev-dependencies = [
+[dependency-groups]
+dev = [
     "mike",
     "mkdocs",
     "mkdocs-material",
