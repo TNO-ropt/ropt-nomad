@@ -9,7 +9,7 @@ information.
 
 
 ## Dependencies
-This code has been tested with Python version 3.11 on linux.
+This code has been tested with Python versions 3.11-3.13 on linux.
 
 The backend requires the [NOMAD](https://www.gerad.ca/en/software/nomad/)
 optimizer, which will be installed as a dependency from PyPI.
