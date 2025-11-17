@@ -6,8 +6,8 @@ import numpy as np
 from numpy.typing import NDArray
 from ropt.enums import VariableType
 from ropt.evaluator import EvaluatorContext, EvaluatorResult
-from ropt.plan import BasicOptimizer
 from ropt.results import FunctionResults, Results
+from ropt.workflow import BasicOptimizer
 
 initial_values = 2 * [0.0]
 
