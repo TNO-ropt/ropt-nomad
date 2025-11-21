@@ -6,11 +6,10 @@ from numpy.typing import ArrayLike, NDArray
 from pydantic import ValidationError
 from ropt.config import EnOptConfig
 from ropt.enums import EventType
-from ropt.plugins import PluginManager
 from ropt.results import FunctionResults
 from ropt.transforms import OptModelTransforms
 from ropt.transforms.base import NonLinearConstraintTransform, ObjectiveTransform
-from ropt.workflow import BasicOptimizer, Event
+from ropt.workflow import BasicOptimizer, Event, validate_optimizer_options
 
 initial_values = [0.2, 0.0, 0.1]
 
@@ -39,9 +38,7 @@ def test_nomad_invalid_options(enopt_config: Any) -> None:
         "BB_MAX_BLOCK_SIZE 10",
         "BB_OUTPUT_TYPE OBJ",
     ]
-    PluginManager().get_plugin("optimizer", "mads").validate_options(
-        "mads", enopt_config["optimizer"]["options"]
-    )
+    validate_optimizer_options("mads", enopt_config["optimizer"]["options"])
 
     enopt_config["optimizer"]["options"] = [
         "BB_MAX_BLOCK_SIZE 10",
@@ -50,9 +47,7 @@ def test_nomad_invalid_options(enopt_config: Any) -> None:
     with pytest.raises(
         ValueError, match=r"Option Error: First argument of BB_OUTPUT_TYPE must be OBJ"
     ):
-        PluginManager().get_plugin("optimizer", "mads").validate_options(
-            "mads", enopt_config["optimizer"]["options"]
-        )
+        validate_optimizer_options("mads", enopt_config["optimizer"]["options"])
 
     enopt_config["optimizer"]["options"] = [
         "BB_MAX_BLOCK_SIZE 10",
@@ -61,9 +56,7 @@ def test_nomad_invalid_options(enopt_config: Any) -> None:
     with pytest.raises(
         ValueError, match=r"Invalid output type\(s\) in BB_OUTPUT_TYPE: {'FOO'}"
     ):
-        PluginManager().get_plugin("optimizer", "mads").validate_options(
-            "mads", enopt_config["optimizer"]["options"]
-        )
+        validate_optimizer_options("mads", enopt_config["optimizer"]["options"])
 
     enopt_config["optimizer"]["options"] = [
         "DIMENSION 10",
@@ -72,9 +65,7 @@ def test_nomad_invalid_options(enopt_config: Any) -> None:
     with pytest.raises(
         ValueError, match=r"Unknown or unsupported option\(s\): `DIMENSION`, `FOO`"
     ):
-        PluginManager().get_plugin("optimizer", "mads").validate_options(
-            "mads", enopt_config["optimizer"]["options"]
-        )
+        validate_optimizer_options("mads", enopt_config["optimizer"]["options"])
 
 
 @pytest.mark.parametrize("parallel", [False, True])
