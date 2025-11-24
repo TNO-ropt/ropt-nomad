@@ -82,9 +82,12 @@ def test_nomad_bound_constraints(
     enopt_config["optimizer"]["parallel"] = parallel
     if parallel:
         enopt_config["optimizer"]["options"] = ["BB_MAX_BLOCK_SIZE 4"]
-    variables = BasicOptimizer(enopt_config, evaluator()).run(initial_values).variables
-    assert variables is not None
-    assert np.allclose(variables, [0.15, 0.0, 0.2], atol=0.02)
+    optimizer = BasicOptimizer(enopt_config, evaluator())
+    optimizer.run(initial_values)
+    assert optimizer.results is not None
+    assert np.allclose(
+        optimizer.results.evaluations.variables, [0.15, 0.0, 0.2], atol=0.02
+    )
 
 
 def test_nomad_bound_constraints_block_size_one(
@@ -95,9 +98,12 @@ def test_nomad_bound_constraints_block_size_one(
     enopt_config["optimizer"]["max_iterations"] = 3
     enopt_config["optimizer"]["parallel"] = True
     enopt_config["optimizer"]["options"] = ["BB_MAX_BLOCK_SIZE 1"]
-    variables = BasicOptimizer(enopt_config, evaluator()).run(initial_values).variables
-    assert variables is not None
-    assert np.allclose(variables, [0.15, 0.0, 0.2], atol=0.02)
+    optimizer = BasicOptimizer(enopt_config, evaluator())
+    optimizer.run(initial_values)
+    assert optimizer.results is not None
+    assert np.allclose(
+        optimizer.results.evaluations.variables, [0.15, 0.0, 0.2], atol=0.02
+    )
 
 
 @pytest.mark.parametrize("parallel", [False, True])
@@ -125,13 +131,12 @@ def test_nomad_ineq_nonlinear_constraints(
         *test_functions,
         lambda variables: weight * variables[0] + weight * variables[2],
     )
-    variables = (
-        BasicOptimizer(enopt_config, evaluator(test_functions))
-        .run(initial_values)
-        .variables
+    optimizer = BasicOptimizer(enopt_config, evaluator(test_functions))
+    optimizer.run(initial_values)
+    assert optimizer.results is not None
+    assert np.allclose(
+        optimizer.results.evaluations.variables, [-0.05, 0.0, 0.45], atol=0.02
     )
-    assert variables is not None
-    assert np.allclose(variables, [-0.05, 0.0, 0.45], atol=0.02)
 
 
 @pytest.mark.parametrize("parallel", [False, True])
@@ -153,11 +158,12 @@ def test_nomad_eq_nonlinear_constraints(
         *test_functions,
         lambda variables: variables[0] + variables[2],
     )
+    optimizer = BasicOptimizer(enopt_config, evaluator(test_functions))
     with pytest.raises(
         ValueError,
         match="Equality constraints are not supported by NOMAD",
     ):
-        BasicOptimizer(enopt_config, evaluator(test_functions)).run(initial_values)
+        optimizer.run(initial_values)
 
 
 @pytest.mark.parametrize("parallel", [False, True])
@@ -179,13 +185,12 @@ def test_nomad_ineq_nonlinear_constraints_two_sided(
         lambda variables: variables[0] + variables[2],
     )
 
-    variables = (
-        BasicOptimizer(enopt_config, evaluator(test_functions))
-        .run(initial_values)
-        .variables
+    optimizer = BasicOptimizer(enopt_config, evaluator(test_functions))
+    optimizer.run(initial_values)
+    assert optimizer.results is not None
+    assert np.allclose(
+        optimizer.results.evaluations.variables, [-0.1, 0.0, 0.4], atol=0.02
     )
-    assert variables is not None
-    assert np.allclose(variables, [-0.1, 0.0, 0.4], atol=0.02)
 
 
 @pytest.mark.parametrize("parallel", [False, True])
@@ -201,9 +206,12 @@ def test_nomad_le_ge_linear_constraints(
     if parallel:
         enopt_config["optimizer"]["options"] = ["BB_MAX_BLOCK_SIZE 4"]
 
-    variables = BasicOptimizer(enopt_config, evaluator()).run(initial_values).variables
-    assert variables is not None
-    assert np.allclose(variables, [-0.05, 0.0, 0.45], atol=0.02)
+    optimizer = BasicOptimizer(enopt_config, evaluator())
+    optimizer.run(initial_values)
+    assert optimizer.results is not None
+    assert np.allclose(
+        optimizer.results.evaluations.variables, [-0.05, 0.0, 0.45], atol=0.02
+    )
 
 
 @pytest.mark.parametrize("parallel", [False, True])
@@ -219,10 +227,11 @@ def test_nomad_eq_linear_constraints(
     if parallel:
         enopt_config["optimizer"]["options"] = ["BB_MAX_BLOCK_SIZE 4"]
 
+    optimizer = BasicOptimizer(enopt_config, evaluator())
     with pytest.raises(
         ValueError, match="Equality constraints are not supported by NOMAD"
     ):
-        BasicOptimizer(enopt_config, evaluator()).run(initial_values)
+        optimizer.run(initial_values)
 
 
 @pytest.mark.parametrize("parallel", [False, True])
@@ -238,9 +247,12 @@ def test_nomad_le_ge_linear_constraints_two_sided(
     if parallel:
         enopt_config["optimizer"]["options"] = ["BB_MAX_BLOCK_SIZE 4"]
 
-    variables = BasicOptimizer(enopt_config, evaluator()).run(initial_values).variables
-    assert variables is not None
-    assert np.allclose(variables, [-0.1, 0.0, 0.4], atol=0.02)
+    optimizer = BasicOptimizer(enopt_config, evaluator())
+    optimizer.run(initial_values)
+    assert optimizer.results is not None
+    assert np.allclose(
+        optimizer.results.evaluations.variables, [-0.1, 0.0, 0.4], atol=0.02
+    )
 
     enopt_config["linear_constraints"] = {
         "coefficients": [[1, 0, 1]],
@@ -248,28 +260,33 @@ def test_nomad_le_ge_linear_constraints_two_sided(
         "upper_bounds": [0.3],
     }
 
-    variables = BasicOptimizer(enopt_config, evaluator()).run(initial_values).variables
-    assert variables is not None
-    assert np.allclose(variables, [-0.1, 0.0, 0.4], atol=0.02)
+    optimizer = BasicOptimizer(enopt_config, evaluator())
+    optimizer.run(initial_values)
+    assert optimizer.results is not None
+    assert np.allclose(
+        optimizer.results.evaluations.variables, [-0.1, 0.0, 0.4], atol=0.02
+    )
 
 
 def test_nomad_dimension_keyword(enopt_config: dict[str, Any], evaluator: Any) -> None:
     enopt_config["optimizer"]["options"] = ["DIMENSION 4"]
+    optimizer = BasicOptimizer(enopt_config, evaluator())
     with pytest.raises(
         ValidationError, match=r"Unknown or unsupported option\(s\): `DIMENSION`"
     ):
-        BasicOptimizer(enopt_config, evaluator()).run(initial_values)
+        optimizer.run(initial_values)
 
 
 def test_nomad_max_iterations_keyword(
     enopt_config: dict[str, Any], evaluator: Any
 ) -> None:
     enopt_config["optimizer"]["options"] = ["MAX_ITERATIONS 4"]
+    optimizer = BasicOptimizer(enopt_config, evaluator())
     with pytest.raises(
         ValidationError,
         match=r"Unknown or unsupported option\(s\): `MAX_ITERATIONS`",
     ):
-        BasicOptimizer(enopt_config, evaluator()).run(initial_values)
+        optimizer.run(initial_values)
 
 
 @pytest.mark.parametrize(
@@ -293,42 +310,44 @@ def test_nomad_bb_output_type(
         *test_functions,
         lambda variables: weight * variables[0] + weight * variables[2],
     )
-    variables = (
-        BasicOptimizer(enopt_config, evaluator(test_functions))
-        .run(initial_values)
-        .variables
+    optimizer = BasicOptimizer(enopt_config, evaluator(test_functions))
+    optimizer.run(initial_values)
+    assert optimizer.results is not None
+    assert np.allclose(
+        optimizer.results.evaluations.variables, [-0.05, 0.0, 0.45], atol=0.02
     )
-    assert variables is not None
-    assert np.allclose(variables, [-0.05, 0.0, 0.45], atol=0.02)
 
     enopt_config["optimizer"]["options"] = ["BB_OUTPUT_TYPE OBJ PB PB"]
+    optimizer = BasicOptimizer(enopt_config, evaluator())
     with pytest.raises(
         ValueError,
         match="Option Error: BB_OUTPUT_TYPE specifies incorrect number of outputs",
     ):
-        BasicOptimizer(enopt_config, evaluator()).run(initial_values)
+        optimizer.run(initial_values)
 
 
 def test_nomad_bb_max_block_size_no_parallel(
     enopt_config: dict[str, Any], evaluator: Any
 ) -> None:
     enopt_config["optimizer"]["options"] = ["BB_MAX_BLOCK_SIZE 4"]
+    optimizer = BasicOptimizer(enopt_config, evaluator())
     with pytest.raises(
         ValueError,
         match="Option Error: BB_MAX_BLOCK_SIZE may only be specified",
     ):
-        BasicOptimizer(enopt_config, evaluator()).run(initial_values)
+        optimizer.run(initial_values)
 
 
 def test_nomad_parallel_no_bb_max_block_size(
     enopt_config: dict[str, Any], evaluator: Any
 ) -> None:
     enopt_config["optimizer"]["parallel"] = True
+    optimizer = BasicOptimizer(enopt_config, evaluator())
     with pytest.raises(
         ValueError,
         match="Option Error: BB_MAX_BLOCK_SIZE must be specified",
     ):
-        BasicOptimizer(enopt_config, evaluator()).run(initial_values)
+        optimizer.run(initial_values)
 
 
 @pytest.mark.parametrize("parallel", [False, True])
@@ -343,9 +362,12 @@ def test_nomad_evaluation_failure(
     if parallel:
         enopt_config["optimizer"]["options"] = ["BB_MAX_BLOCK_SIZE 4"]
 
-    variables1 = BasicOptimizer(enopt_config, evaluator()).run(initial_values).variables
-    assert variables1 is not None
-    assert np.allclose(variables1, [0.15, 0.0, 0.2], atol=0.02)
+    optimizer1 = BasicOptimizer(enopt_config, evaluator())
+    optimizer1.run(initial_values)
+    assert optimizer1.results is not None
+    assert np.allclose(
+        optimizer1.results.evaluations.variables, [0.15, 0.0, 0.2], atol=0.02
+    )
 
     counter = 0
 
@@ -357,14 +379,18 @@ def test_nomad_evaluation_failure(
             return np.nan
         return test_functions[0](x)
 
-    variables2 = (
-        BasicOptimizer(enopt_config, evaluator((_add_nan, test_functions[1])))
-        .run(initial_values)
-        .variables
+    optimizer2 = BasicOptimizer(enopt_config, evaluator((_add_nan, test_functions[1])))
+    optimizer2.run(initial_values)
+    assert optimizer2.results is not None
+    assert np.allclose(
+        optimizer2.results.evaluations.variables, [0.15, 0.0, 0.2], atol=0.02
     )
-    assert variables2 is not None
-    assert np.allclose(variables2, [0.15, 0.0, 0.2], atol=0.02)
-    assert not np.all(np.equal(variables1, variables2))
+    assert not np.all(
+        np.equal(
+            optimizer1.results.evaluations.variables,
+            optimizer2.results.evaluations.variables,
+        )
+    )
 
 
 class ObjectiveScaler(ObjectiveTransform):
@@ -391,12 +417,15 @@ def test_nomad_objective_with_scaler(
     enopt_config["optimizer"]["parallel"] = parallel
     if parallel:
         enopt_config["optimizer"]["options"] = ["BB_MAX_BLOCK_SIZE 4"]
-    results1 = BasicOptimizer(enopt_config, evaluator()).run(initial_values).results
-    assert results1 is not None
-    assert results1.functions is not None
-    variables1 = results1.evaluations.variables
-    objectives1 = results1.functions.objectives
-    assert np.allclose(variables1, [0.0, 0.0, 0.5], atol=0.02)
+    optimizer1 = BasicOptimizer(enopt_config, evaluator())
+    optimizer1.run(initial_values)
+    assert optimizer1.results is not None
+    assert optimizer1.results.functions is not None
+    objectives1 = optimizer1.results.functions.objectives
+    assert optimizer1.results is not None
+    assert np.allclose(
+        optimizer1.results.evaluations.variables, [0.0, 0.0, 0.5], atol=0.02
+    )
     assert np.allclose(objectives1, [0.5, 4.5], atol=0.02)
 
     def function1(variables: NDArray[np.float64]) -> float:
@@ -428,17 +457,22 @@ def test_nomad_objective_with_scaler(
                 assert transformed.functions.objectives is not None
                 assert np.allclose(transformed.functions.objectives[-1], init1)
 
-    optimizer = BasicOptimizer(
+    optimizer2 = BasicOptimizer(
         enopt_config, evaluator([function1, function2]), transforms=transforms
     )
-    optimizer._observers.append(  # noqa: SLF001
+    optimizer2._observers.append(  # noqa: SLF001
         (EventType.FINISHED_EVALUATION, check_value)
     )
-    results2 = optimizer.run(initial_values).results
-    assert results2 is not None
-    assert np.allclose(results2.evaluations.variables, variables1, atol=0.02)
-    assert results2.functions is not None
-    assert np.allclose(objectives1, results2.functions.objectives, atol=0.025)
+    optimizer2.run(initial_values)
+    assert optimizer2.results is not None
+    assert optimizer2.results is not None
+    assert np.allclose(
+        optimizer2.results.evaluations.variables,
+        optimizer1.results.evaluations.variables,
+        atol=0.02,
+    )
+    assert optimizer2.results.functions is not None
+    assert np.allclose(objectives1, optimizer2.results.functions.objectives, atol=0.025)
 
 
 @pytest.mark.parametrize("parallel", [False, True])
@@ -448,13 +482,15 @@ def test_nomad_objective_with_lazy_scaler(
     enopt_config["optimizer"]["parallel"] = parallel
     if parallel:
         enopt_config["optimizer"]["options"] = ["BB_MAX_BLOCK_SIZE 4"]
-    results1 = BasicOptimizer(enopt_config, evaluator()).run(initial_values).results
-    assert results1 is not None
-    assert results1.functions is not None
-    variables1 = results1.evaluations.variables
-    objectives1 = results1.functions.objectives
-    assert np.allclose(variables1, [0.0, 0.0, 0.5], atol=0.02)
-    assert np.allclose(objectives1, [0.5, 4.5], atol=0.02)
+    optimizer1 = BasicOptimizer(enopt_config, evaluator())
+    optimizer1.run(initial_values)
+    assert optimizer1.results is not None
+    assert optimizer1.results.functions is not None
+    assert optimizer1.results is not None
+    assert np.allclose(
+        optimizer1.results.evaluations.variables, [0.0, 0.0, 0.5], atol=0.02
+    )
+    assert np.allclose(optimizer1.results.functions.objectives, [0.5, 4.5], atol=0.02)
 
     objective_transform = ObjectiveScaler(np.array([1.0, 1.0]))
     transforms = OptModelTransforms(objectives=objective_transform)
@@ -486,17 +522,26 @@ def test_nomad_objective_with_lazy_scaler(
                 assert transformed.functions.objectives is not None
                 assert np.allclose(transformed.functions.objectives[-1], init1)
 
-    optimizer = BasicOptimizer(
+    optimizer2 = BasicOptimizer(
         enopt_config, evaluator([function1, function2]), transforms=transforms
     )
-    optimizer._observers.append(  # noqa: SLF001
+    optimizer2._observers.append(  # noqa: SLF001
         (EventType.FINISHED_EVALUATION, check_value)
     )
-    results2 = optimizer.run(initial_values).results
-    assert results2 is not None
-    assert np.allclose(results2.evaluations.variables, variables1, atol=0.02)
-    assert results2.functions is not None
-    assert np.allclose(objectives1, results2.functions.objectives, atol=0.025)
+    optimizer2.run(initial_values)
+    assert optimizer2.results is not None
+    assert optimizer2.results is not None
+    assert np.allclose(
+        optimizer2.results.evaluations.variables,
+        optimizer1.results.evaluations.variables,
+        atol=0.02,
+    )
+    assert optimizer2.results.functions is not None
+    assert np.allclose(
+        optimizer1.results.functions.objectives,
+        optimizer2.results.functions.objectives,
+        atol=0.025,
+    )
 
 
 class ConstraintScaler(NonLinearConstraintTransform):
@@ -551,12 +596,12 @@ def test_nomad_nonlinear_constraint_with_scaler(
         lambda variables: variables[0] + variables[2],
     )
 
-    results1 = (
-        BasicOptimizer(enopt_config, evaluator(functions)).run(initial_values).results
-    )
-    assert results1 is not None
-    assert results1.evaluations.variables[[0, 2]].sum() > 0.0 - 1e-5
-    assert results1.evaluations.variables[[0, 2]].sum() < 0.4 + 1e-5
+    optimizer1 = BasicOptimizer(enopt_config, evaluator(functions))
+    optimizer1.run(initial_values)
+    assert optimizer1.results is not None
+    assert optimizer1.results is not None
+    assert optimizer1.results.evaluations.variables[[0, 2]].sum() > 0.0 - 1e-5
+    assert optimizer1.results.evaluations.variables[[0, 2]].sum() < 0.4 + 1e-5
 
     scales = np.array(functions[-1](initial_values), ndmin=1)
     transforms = OptModelTransforms(nonlinear_constraints=ConstraintScaler(scales))
@@ -589,21 +634,26 @@ def test_nomad_nonlinear_constraint_with_scaler(
                 assert transformed.functions.constraints is not None
                 assert np.allclose(transformed.functions.constraints, scales)
 
-    optimizer = BasicOptimizer(
+    optimizer2 = BasicOptimizer(
         enopt_config, evaluator(functions), transforms=transforms
     )
-    optimizer._observers.append(  # noqa: SLF001
+    optimizer2._observers.append(  # noqa: SLF001
         (EventType.FINISHED_EVALUATION, check_constraints)
     )
-    results2 = optimizer.run(initial_values).results
-    assert results2 is not None
+    optimizer2.run(initial_values)
+    assert optimizer2.results is not None
+    assert optimizer2.results is not None
     assert np.allclose(
-        results2.evaluations.variables, results1.evaluations.variables, atol=0.02
+        optimizer2.results.evaluations.variables,
+        optimizer1.results.evaluations.variables,
+        atol=0.02,
     )
-    assert results1.functions is not None
-    assert results2.functions is not None
+    assert optimizer1.results.functions is not None
+    assert optimizer2.results.functions is not None
     assert np.allclose(
-        results1.functions.objectives, results2.functions.objectives, atol=0.025
+        optimizer1.results.functions.objectives,
+        optimizer2.results.functions.objectives,
+        atol=0.025,
     )
 
 
@@ -611,7 +661,7 @@ def test_nomad_nonlinear_constraint_with_scaler(
 @pytest.mark.parametrize(
     "external", ["", pytest.param("external/", marks=pytest.mark.external)]
 )
-def test_nomad_nonlinear_constraint_with_lazy_scaler(
+def test_nomad_nonlinear_constraint_with_lazy_scaler(  # noqa: PLR0915
     enopt_config: Any,
     evaluator: Any,
     parallel: bool,
@@ -632,12 +682,12 @@ def test_nomad_nonlinear_constraint_with_lazy_scaler(
         lambda variables: variables[0] + variables[2],
     )
 
-    results1 = (
-        BasicOptimizer(enopt_config, evaluator(functions)).run(initial_values).results
-    )
-    assert results1 is not None
-    assert results1.evaluations.variables[[0, 2]].sum() > 0.0 - 1e-5
-    assert results1.evaluations.variables[[0, 2]].sum() < 0.4 + 1e-5
+    optimizer1 = BasicOptimizer(enopt_config, evaluator(functions))
+    optimizer1.run(initial_values)
+    assert optimizer1.results is not None
+    assert optimizer1.results is not None
+    assert optimizer1.results.evaluations.variables[[0, 2]].sum() > 0.0 - 1e-5
+    assert optimizer1.results.evaluations.variables[[0, 2]].sum() < 0.4 + 1e-5
 
     scales = np.array(functions[-1](initial_values), ndmin=1)
     scaler = ConstraintScaler([1.0])
@@ -686,19 +736,24 @@ def test_nomad_nonlinear_constraint_with_lazy_scaler(
                 assert transformed.functions.constraints is not None
                 assert np.allclose(transformed.functions.constraints, scales)
 
-    optimizer = BasicOptimizer(
+    optimizer2 = BasicOptimizer(
         enopt_config, evaluator(functions), transforms=transforms
     )
-    optimizer._observers.append(  # noqa: SLF001
+    optimizer2._observers.append(  # noqa: SLF001
         (EventType.FINISHED_EVALUATION, check_constraints)
     )
-    results2 = optimizer.run(initial_values).results
-    assert results2 is not None
+    optimizer2.run(initial_values)
+    assert optimizer2.results is not None
+    assert optimizer2.results is not None
     assert np.allclose(
-        results2.evaluations.variables, results1.evaluations.variables, atol=0.02
+        optimizer2.results.evaluations.variables,
+        optimizer1.results.evaluations.variables,
+        atol=0.02,
     )
-    assert results1.functions is not None
-    assert results2.functions is not None
+    assert optimizer1.results.functions is not None
+    assert optimizer2.results.functions is not None
     assert np.allclose(
-        results1.functions.objectives, results2.functions.objectives, atol=0.025
+        optimizer1.results.functions.objectives,
+        optimizer2.results.functions.objectives,
+        atol=0.025,
     )
