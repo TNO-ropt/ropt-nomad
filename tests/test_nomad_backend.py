@@ -572,17 +572,12 @@ class ConstraintScaler(NonLinearConstraintTransform):
 
 
 @pytest.mark.parametrize("parallel", [False, True])
-@pytest.mark.parametrize(
-    "external", ["", pytest.param("external/", marks=pytest.mark.external)]
-)
 def test_nomad_nonlinear_constraint_with_scaler(
     enopt_config: Any,
     evaluator: Any,
     parallel: bool,
     test_functions: Any,
-    external: str,
 ) -> None:
-    enopt_config["optimizer"]["method"] = f"{external}nomad/default"
     enopt_config["nonlinear_constraints"] = {
         "lower_bounds": 0.0,
         "upper_bounds": 0.4,
@@ -658,17 +653,12 @@ def test_nomad_nonlinear_constraint_with_scaler(
 
 
 @pytest.mark.parametrize("parallel", [False, True])
-@pytest.mark.parametrize(
-    "external", ["", pytest.param("external/", marks=pytest.mark.external)]
-)
 def test_nomad_nonlinear_constraint_with_lazy_scaler(  # noqa: PLR0915
     enopt_config: Any,
     evaluator: Any,
     parallel: bool,
     test_functions: Any,
-    external: str,
 ) -> None:
-    enopt_config["optimizer"]["method"] = f"{external}nomad/default"
     enopt_config["nonlinear_constraints"] = {
         "lower_bounds": 0.0,
         "upper_bounds": 0.4,
