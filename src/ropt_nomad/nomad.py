@@ -338,7 +338,7 @@ class NomadOptimizerPlugin(OptimizerPlugin):
         See the [ropt.plugins.optimizer.base.OptimizerPlugin][] abstract base class.
 
         # noqa
-        """
+        """  # noqa: DOC201
         return NomadOptimizer(config, optimizer_callback)
 
     @classmethod
@@ -348,7 +348,7 @@ class NomadOptimizerPlugin(OptimizerPlugin):
         See the [ropt.plugins.optimizer.base.OptimizerPlugin][] abstract base class.
 
         # noqa
-        """
+        """  # noqa: DOC201
         return method.lower() in (_SUPPORTED_METHODS | {"default"})
 
     @classmethod
@@ -360,7 +360,7 @@ class NomadOptimizerPlugin(OptimizerPlugin):
         See the [ropt.plugins.optimizer.base.OptimizerPlugin][] abstract base class.
 
         # noqa
-        """
+        """  # noqa: DOC501
         if options is not None:
             if not isinstance(options, list):
                 msg = "The Nomad optimizer options must be a list of strings"

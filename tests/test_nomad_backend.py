@@ -13,6 +13,8 @@ from ropt.workflow import BasicOptimizer, Event, validate_optimizer_options
 
 initial_values = [0.2, 0.0, 0.1]
 
+# ruff: noqa: FBT001
+
 
 @pytest.fixture(name="enopt_config")
 def enopt_config_fixture() -> dict[str, Any]:
@@ -110,7 +112,7 @@ def test_nomad_bound_constraints_block_size_one(
 @pytest.mark.parametrize(
     ("lower_bounds", "upper_bounds"), [(-np.inf, 0.4), (-0.4, np.inf)]
 )
-def test_nomad_ineq_nonlinear_constraints(
+def test_nomad_ineq_nonlinear_constraints(  # noqa: PLR0917
     enopt_config: dict[str, Any],
     lower_bounds: Any,
     upper_bounds: Any,
