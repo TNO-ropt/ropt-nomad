@@ -131,7 +131,7 @@ def test_nomad_ineq_nonlinear_constraints(  # noqa: PLR0917
     weight = 1.0 if upper_bounds == 0.4 else -1.0
     test_functions = (
         *test_functions,
-        lambda variables: weight * variables[0] + weight * variables[2],
+        lambda variables, _: weight * variables[0] + weight * variables[2],
     )
     optimizer = BasicOptimizer(enopt_config, evaluator(test_functions))
     optimizer.run(initial_values)
@@ -158,7 +158,7 @@ def test_nomad_eq_nonlinear_constraints(
 
     test_functions = (
         *test_functions,
-        lambda variables: variables[0] + variables[2],
+        lambda variables, _: variables[0] + variables[2],
     )
     optimizer = BasicOptimizer(enopt_config, evaluator(test_functions))
     with pytest.raises(
@@ -184,7 +184,7 @@ def test_nomad_ineq_nonlinear_constraints_two_sided(
         enopt_config["optimizer"]["options"] = ["BB_MAX_BLOCK_SIZE 4"]
     test_functions = (
         *test_functions,
-        lambda variables: variables[0] + variables[2],
+        lambda variables, _: variables[0] + variables[2],
     )
 
     optimizer = BasicOptimizer(enopt_config, evaluator(test_functions))
@@ -310,7 +310,7 @@ def test_nomad_bb_output_type(
     weight = 1.0 if upper_bounds == 0.4 else -1.0
     test_functions = (
         *test_functions,
-        lambda variables: weight * variables[0] + weight * variables[2],
+        lambda variables, _: weight * variables[0] + weight * variables[2],
     )
     optimizer = BasicOptimizer(enopt_config, evaluator(test_functions))
     optimizer.run(initial_values)
@@ -373,13 +373,13 @@ def test_nomad_evaluation_failure(
 
     counter = 0
 
-    def _add_nan(x: Any) -> Any:
+    def _add_nan(x: Any, _: int) -> Any:
         nonlocal counter
         counter += 1
         if counter == 2:
             counter = 0
             return np.nan
-        return test_functions[0](x)
+        return test_functions[0](x, 0)
 
     optimizer2 = BasicOptimizer(enopt_config, evaluator((_add_nan, test_functions[1])))
     optimizer2.run(initial_values)
@@ -430,13 +430,13 @@ def test_nomad_objective_with_scaler(
     )
     assert np.allclose(objectives1, [0.5, 4.5], atol=0.02)
 
-    def function1(variables: NDArray[np.float64]) -> float:
-        return float(test_functions[0](variables))
+    def function1(variables: NDArray[np.float64], _: int) -> float:
+        return float(test_functions[0](variables, 0))
 
-    def function2(variables: NDArray[np.float64]) -> float:
-        return float(test_functions[1](variables))
+    def function2(variables: NDArray[np.float64], _: int) -> float:
+        return float(test_functions[1](variables, 0))
 
-    init1 = test_functions[1](initial_values)
+    init1 = test_functions[1](initial_values, 0)
     transforms = OptModelTransforms(
         objectives=ObjectiveScaler(np.array([init1, init1]))
     )
@@ -497,14 +497,14 @@ def test_nomad_objective_with_lazy_scaler(
     objective_transform = ObjectiveScaler(np.array([1.0, 1.0]))
     transforms = OptModelTransforms(objectives=objective_transform)
 
-    init1 = test_functions[1](initial_values)
+    init1 = test_functions[1](initial_values, 0)
 
-    def function1(variables: NDArray[np.float64]) -> float:
+    def function1(variables: NDArray[np.float64], _: int) -> float:
         objective_transform.set_scales([init1, init1])
-        return float(test_functions[0](variables))
+        return float(test_functions[0](variables, 0))
 
-    def function2(variables: NDArray[np.float64]) -> float:
-        return float(test_functions[1](variables))
+    def function2(variables: NDArray[np.float64], _: int) -> float:
+        return float(test_functions[1](variables, 0))
 
     checked = False
 
@@ -590,7 +590,7 @@ def test_nomad_nonlinear_constraint_with_scaler(
 
     functions = (
         *test_functions,
-        lambda variables: variables[0] + variables[2],
+        lambda variables, _: variables[0] + variables[2],
     )
 
     optimizer1 = BasicOptimizer(enopt_config, evaluator(functions))
@@ -600,7 +600,7 @@ def test_nomad_nonlinear_constraint_with_scaler(
     assert optimizer1.results.evaluations.variables[[0, 2]].sum() > 0.0 - 1e-5
     assert optimizer1.results.evaluations.variables[[0, 2]].sum() < 0.4 + 1e-5
 
-    scales = np.array(functions[-1](initial_values), ndmin=1)
+    scales = np.array(functions[-1](initial_values, 0), ndmin=1)
     transforms = OptModelTransforms(nonlinear_constraints=ConstraintScaler(scales))
     config = EnOptConfig.model_validate(enopt_config, context=transforms)
     assert config.nonlinear_constraints is not None
@@ -671,7 +671,7 @@ def test_nomad_nonlinear_constraint_with_lazy_scaler(  # noqa: PLR0915
 
     functions = (
         *test_functions,
-        lambda variables: variables[0] + variables[2],
+        lambda variables, _: variables[0] + variables[2],
     )
 
     optimizer1 = BasicOptimizer(enopt_config, evaluator(functions))
@@ -681,7 +681,7 @@ def test_nomad_nonlinear_constraint_with_lazy_scaler(  # noqa: PLR0915
     assert optimizer1.results.evaluations.variables[[0, 2]].sum() > 0.0 - 1e-5
     assert optimizer1.results.evaluations.variables[[0, 2]].sum() < 0.4 + 1e-5
 
-    scales = np.array(functions[-1](initial_values), ndmin=1)
+    scales = np.array(functions[-1](initial_values, 0), ndmin=1)
     scaler = ConstraintScaler([1.0])
     transforms = OptModelTransforms(nonlinear_constraints=scaler)
 
@@ -696,7 +696,7 @@ def test_nomad_nonlinear_constraint_with_lazy_scaler(  # noqa: PLR0915
     assert bounds is not None
     assert bounds[1] == 0.4
 
-    def constraint_function(variables: NDArray[np.float64]) -> float:
+    def constraint_function(variables: NDArray[np.float64], _: int) -> float:
         scaler.set_scales(scales)
         return float(variables[0] + variables[2])
 
