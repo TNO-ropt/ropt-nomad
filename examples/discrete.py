@@ -54,7 +54,7 @@ def report(results: tuple[Results, ...]) -> None:
     for item in results:
         if isinstance(item, FunctionResults) and item.functions is not None:
             print(f"  variables: {item.evaluations.variables}")
-            print(f"  objective: {item.functions.weighted_objective}\n")
+            print(f"  objective: {item.functions.target_objective}\n")
 
 
 def run_optimization(config: dict[str, Any]) -> None:
@@ -66,7 +66,7 @@ def run_optimization(config: dict[str, Any]) -> None:
     assert optimizer.results.functions is not None
     assert np.all(np.equal(optimizer.results.evaluations.variables, [3, 7]))
     print(f"  variables: {optimizer.results.evaluations.variables}")
-    print(f"  objective: {optimizer.results.functions.weighted_objective}\n")
+    print(f"  objective: {optimizer.results.functions.target_objective}\n")
 
 
 def main() -> None:
