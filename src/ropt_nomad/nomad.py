@@ -21,7 +21,7 @@ from ropt.plugins.optimizer.utils import (
 if TYPE_CHECKING:
     from numpy.typing import NDArray
     from ropt.config import EnOptConfig
-    from ropt.optimization import OptimizerCallback
+    from ropt.core import OptimizerCallback
 
 _SUPPORTED_METHODS: Final = {"mads"}
 _DEFAULT_METHOD: Final = "mads"
