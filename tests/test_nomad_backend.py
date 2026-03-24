@@ -10,8 +10,11 @@ from ropt.config import EnOptConfig
 from ropt.enums import EnOptEventType
 from ropt.events import EnOptEvent
 from ropt.results import FunctionResults
-from ropt.transforms import OptModelTransforms
-from ropt.transforms.base import NonLinearConstraintTransform, ObjectiveTransform
+from ropt.transforms import (
+    NonLinearConstraintTransform,
+    ObjectiveTransform,
+    OptModelTransforms,
+)
 from ropt.workflow import BasicOptimizer, validate_optimizer_options
 
 initial_values = [0.2, 0.0, 0.1]
