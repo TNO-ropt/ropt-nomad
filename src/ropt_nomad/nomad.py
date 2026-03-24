@@ -12,11 +12,9 @@ from pydantic import Field
 from ropt.config.options import OptionsSchemaModel
 from ropt.enums import VariableType
 from ropt.exceptions import ComputeStepAborted
-from ropt.plugins.optimizer.base import Optimizer, OptimizerPlugin
-from ropt.plugins.optimizer.utils import (
-    NormalizedConstraints,
-    get_masked_linear_constraints,
-)
+from ropt.optimizer import Optimizer
+from ropt.optimizer.utils import NormalizedConstraints, get_masked_linear_constraints
+from ropt.plugins.optimizer import OptimizerPlugin
 
 if TYPE_CHECKING:
     from numpy.typing import NDArray
@@ -57,7 +55,7 @@ class NomadOptimizer(Optimizer):
     ) -> None:
         """Initialize the optimizer implemented by the nomad plugin.
 
-        See the [ropt.plugins.optimizer.base.Optimizer][] abstract base class.
+        See the [ropt.optimizer.Optimizer][] abstract base class.
 
         # noqa
         """
@@ -78,7 +76,7 @@ class NomadOptimizer(Optimizer):
     def is_parallel(self) -> bool:
         """Whether the current run is parallel.
 
-        See the [ropt.plugins.optimizer.base.Optimizer][] abstract base class.
+        See the [ropt.optimizer.Optimizer][] abstract base class.
 
         # noqa
         """
@@ -87,7 +85,7 @@ class NomadOptimizer(Optimizer):
     def start(self, initial_values: NDArray[np.float64]) -> None:
         """Start the optimization.
 
-        See the [ropt.plugins.optimizer.base.Optimizer][] abstract base class.
+        See the [ropt.optimizer.Optimizer][] abstract base class.
 
         # noqa
         """
@@ -112,7 +110,7 @@ class NomadOptimizer(Optimizer):
     def allow_nan(self) -> bool:
         """Whether NaN is allowed.
 
-        See the [ropt.plugins.optimizer.base.Optimizer][] abstract base class.
+        See the [ropt.optimizer.Optimizer][] abstract base class.
 
         # noqa
         """
@@ -335,7 +333,7 @@ class NomadOptimizerPlugin(OptimizerPlugin):
     ) -> NomadOptimizer:
         """Initialize the optimizer plugin.
 
-        See the [ropt.plugins.optimizer.base.OptimizerPlugin][] abstract base class.
+        See the [ropt.plugins.optimizer.OptimizerPlugin][] abstract base class.
 
         # noqa
         """  # noqa: DOC201
@@ -345,7 +343,7 @@ class NomadOptimizerPlugin(OptimizerPlugin):
     def is_supported(cls, method: str) -> bool:
         """Check if a method is supported.
 
-        See the [ropt.plugins.optimizer.base.OptimizerPlugin][] abstract base class.
+        See the [ropt.plugins.optimizer.OptimizerPlugin][] abstract base class.
 
         # noqa
         """  # noqa: DOC201
@@ -357,7 +355,7 @@ class NomadOptimizerPlugin(OptimizerPlugin):
     ) -> None:
         """Validate the options of a given method.
 
-        See the [ropt.plugins.optimizer.base.OptimizerPlugin][] abstract base class.
+        See the [ropt.plugins.optimizer.OptimizerPlugin][] abstract base class.
 
         # noqa
         """  # noqa: DOC501
