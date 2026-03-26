@@ -18,7 +18,7 @@ CONFIG: dict[str, Any] = {
         "upper_bounds": [10.0, 10.0],
         "types": VariableType.INTEGER,
     },
-    "optimizer": {
+    "backend": {
         "method": "nomad/default",
         "options": ["MAX_EVAL 100"],
         "output_dir": ".",

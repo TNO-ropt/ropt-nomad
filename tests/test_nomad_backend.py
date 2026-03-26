@@ -5,7 +5,7 @@ from typing import Any
 import numpy as np
 import pytest
 from pydantic import ValidationError
-from ropt.workflow import BasicOptimizer, validate_optimizer_options
+from ropt.workflow import BasicOptimizer, validate_backend_options
 
 initial_values = [0.2, 0.0, 0.1]
 
@@ -20,7 +20,7 @@ def enopt_config_fixture() -> dict[str, Any]:
             "lower_bounds": [-1.0, -1.0, -1.0],
             "upper_bounds": [1.0, 1.0, 1.0],
         },
-        "optimizer": {
+        "backend": {
             "method": "nomad/default",
             "max_iterations": 7,
         },
@@ -31,39 +31,39 @@ def enopt_config_fixture() -> dict[str, Any]:
 
 
 def test_nomad_invalid_options(enopt_config: Any) -> None:
-    enopt_config["optimizer"]["method"] = "mads"
-    enopt_config["optimizer"]["options"] = [
+    enopt_config["backend"]["method"] = "mads"
+    enopt_config["backend"]["options"] = [
         "BB_MAX_BLOCK_SIZE 10",
         "BB_OUTPUT_TYPE OBJ",
     ]
-    validate_optimizer_options("mads", enopt_config["optimizer"]["options"])
+    validate_backend_options("mads", enopt_config["backend"]["options"])
 
-    enopt_config["optimizer"]["options"] = [
+    enopt_config["backend"]["options"] = [
         "BB_MAX_BLOCK_SIZE 10",
         "BB_OUTPUT_TYPE FOO",
     ]
     with pytest.raises(
         ValueError, match=r"Option Error: First argument of BB_OUTPUT_TYPE must be OBJ"
     ):
-        validate_optimizer_options("mads", enopt_config["optimizer"]["options"])
+        validate_backend_options("mads", enopt_config["backend"]["options"])
 
-    enopt_config["optimizer"]["options"] = [
+    enopt_config["backend"]["options"] = [
         "BB_MAX_BLOCK_SIZE 10",
         "BB_OUTPUT_TYPE OBJ FOO",
     ]
     with pytest.raises(
         ValueError, match=r"Invalid output type\(s\) in BB_OUTPUT_TYPE: {'FOO'}"
     ):
-        validate_optimizer_options("mads", enopt_config["optimizer"]["options"])
+        validate_backend_options("mads", enopt_config["backend"]["options"])
 
-    enopt_config["optimizer"]["options"] = [
+    enopt_config["backend"]["options"] = [
         "DIMENSION 10",
         "FOO FOO",
     ]
     with pytest.raises(
         ValueError, match=r"Unknown or unsupported option\(s\): `DIMENSION`, `FOO`"
     ):
-        validate_optimizer_options("mads", enopt_config["optimizer"]["options"])
+        validate_backend_options("mads", enopt_config["backend"]["options"])
 
 
 @pytest.mark.parametrize("parallel", [False, True])
@@ -73,13 +73,13 @@ def test_nomad_invalid_options(enopt_config: Any) -> None:
 def test_nomad_bound_constraints(
     enopt_config: dict[str, Any], evaluator: Any, parallel: bool, external: str
 ) -> None:
-    enopt_config["optimizer"]["method"] = f"{external}nomad/default"
+    enopt_config["backend"]["method"] = f"{external}nomad/default"
     enopt_config["variables"]["lower_bounds"] = [0.15, -1.0, -1.0]
     enopt_config["variables"]["upper_bounds"] = [1.0, 1.0, 0.2]
-    enopt_config["optimizer"]["max_iterations"] = 3
-    enopt_config["optimizer"]["parallel"] = parallel
+    enopt_config["backend"]["max_iterations"] = 3
+    enopt_config["backend"]["parallel"] = parallel
     if parallel:
-        enopt_config["optimizer"]["options"] = ["BB_MAX_BLOCK_SIZE 4"]
+        enopt_config["backend"]["options"] = ["BB_MAX_BLOCK_SIZE 4"]
     optimizer = BasicOptimizer(enopt_config, evaluator())
     optimizer.run(initial_values)
     assert optimizer.results is not None
@@ -93,9 +93,9 @@ def test_nomad_bound_constraints_block_size_one(
 ) -> None:
     enopt_config["variables"]["lower_bounds"] = [0.15, -1.0, -1.0]
     enopt_config["variables"]["upper_bounds"] = [1.0, 1.0, 0.2]
-    enopt_config["optimizer"]["max_iterations"] = 3
-    enopt_config["optimizer"]["parallel"] = True
-    enopt_config["optimizer"]["options"] = ["BB_MAX_BLOCK_SIZE 1"]
+    enopt_config["backend"]["max_iterations"] = 3
+    enopt_config["backend"]["parallel"] = True
+    enopt_config["backend"]["options"] = ["BB_MAX_BLOCK_SIZE 1"]
     optimizer = BasicOptimizer(enopt_config, evaluator())
     optimizer.run(initial_values)
     assert optimizer.results is not None
@@ -120,9 +120,9 @@ def test_nomad_ineq_nonlinear_constraints(  # noqa: PLR0917
         "lower_bounds": lower_bounds,
         "upper_bounds": upper_bounds,
     }
-    enopt_config["optimizer"]["parallel"] = parallel
+    enopt_config["backend"]["parallel"] = parallel
     if parallel:
-        enopt_config["optimizer"]["options"] = ["BB_MAX_BLOCK_SIZE 4"]
+        enopt_config["backend"]["options"] = ["BB_MAX_BLOCK_SIZE 4"]
 
     weight = 1.0 if upper_bounds == 0.4 else -1.0
     test_functions = (
@@ -148,9 +148,9 @@ def test_nomad_eq_nonlinear_constraints(
         "lower_bounds": 1.0,
         "upper_bounds": 1.0,
     }
-    enopt_config["optimizer"]["parallel"] = parallel
+    enopt_config["backend"]["parallel"] = parallel
     if parallel:
-        enopt_config["optimizer"]["options"] = ["BB_MAX_BLOCK_SIZE 4"]
+        enopt_config["backend"]["options"] = ["BB_MAX_BLOCK_SIZE 4"]
 
     test_functions = (
         *test_functions,
@@ -175,9 +175,9 @@ def test_nomad_ineq_nonlinear_constraints_two_sided(
         "lower_bounds": [0.0],
         "upper_bounds": [0.3],
     }
-    enopt_config["optimizer"]["parallel"] = parallel
+    enopt_config["backend"]["parallel"] = parallel
     if parallel:
-        enopt_config["optimizer"]["options"] = ["BB_MAX_BLOCK_SIZE 4"]
+        enopt_config["backend"]["options"] = ["BB_MAX_BLOCK_SIZE 4"]
     test_functions = (
         *test_functions,
         lambda variables, _: variables[0] + variables[2],
@@ -200,9 +200,9 @@ def test_nomad_le_ge_linear_constraints(
         "lower_bounds": [-np.inf],
         "upper_bounds": [0.4],
     }
-    enopt_config["optimizer"]["parallel"] = parallel
+    enopt_config["backend"]["parallel"] = parallel
     if parallel:
-        enopt_config["optimizer"]["options"] = ["BB_MAX_BLOCK_SIZE 4"]
+        enopt_config["backend"]["options"] = ["BB_MAX_BLOCK_SIZE 4"]
 
     optimizer = BasicOptimizer(enopt_config, evaluator())
     optimizer.run(initial_values)
@@ -221,9 +221,9 @@ def test_nomad_eq_linear_constraints(
         "lower_bounds": [1.0, 0.75],
         "upper_bounds": [1.0, 0.75],
     }
-    enopt_config["optimizer"]["parallel"] = parallel
+    enopt_config["backend"]["parallel"] = parallel
     if parallel:
-        enopt_config["optimizer"]["options"] = ["BB_MAX_BLOCK_SIZE 4"]
+        enopt_config["backend"]["options"] = ["BB_MAX_BLOCK_SIZE 4"]
 
     optimizer = BasicOptimizer(enopt_config, evaluator())
     with pytest.raises(
@@ -241,9 +241,9 @@ def test_nomad_le_ge_linear_constraints_two_sided(
         "lower_bounds": [-np.inf, 0.0],
         "upper_bounds": [0.3, np.inf],
     }
-    enopt_config["optimizer"]["parallel"] = parallel
+    enopt_config["backend"]["parallel"] = parallel
     if parallel:
-        enopt_config["optimizer"]["options"] = ["BB_MAX_BLOCK_SIZE 4"]
+        enopt_config["backend"]["options"] = ["BB_MAX_BLOCK_SIZE 4"]
 
     optimizer = BasicOptimizer(enopt_config, evaluator())
     optimizer.run(initial_values)
@@ -267,7 +267,7 @@ def test_nomad_le_ge_linear_constraints_two_sided(
 
 
 def test_nomad_dimension_keyword(enopt_config: dict[str, Any], evaluator: Any) -> None:
-    enopt_config["optimizer"]["options"] = ["DIMENSION 4"]
+    enopt_config["backend"]["options"] = ["DIMENSION 4"]
     optimizer = BasicOptimizer(enopt_config, evaluator())
     with pytest.raises(
         ValidationError, match=r"Unknown or unsupported option\(s\): `DIMENSION`"
@@ -278,7 +278,7 @@ def test_nomad_dimension_keyword(enopt_config: dict[str, Any], evaluator: Any) -
 def test_nomad_max_iterations_keyword(
     enopt_config: dict[str, Any], evaluator: Any
 ) -> None:
-    enopt_config["optimizer"]["options"] = ["MAX_ITERATIONS 4"]
+    enopt_config["backend"]["options"] = ["MAX_ITERATIONS 4"]
     optimizer = BasicOptimizer(enopt_config, evaluator())
     with pytest.raises(
         ValidationError,
@@ -301,7 +301,7 @@ def test_nomad_bb_output_type(
         "lower_bounds": lower_bounds,
         "upper_bounds": upper_bounds,
     }
-    enopt_config["optimizer"]["options"] = ["BB_OUTPUT_TYPE OBJ PB"]
+    enopt_config["backend"]["options"] = ["BB_OUTPUT_TYPE OBJ PB"]
 
     weight = 1.0 if upper_bounds == 0.4 else -1.0
     test_functions = (
@@ -315,7 +315,7 @@ def test_nomad_bb_output_type(
         optimizer.results.evaluations.variables, [-0.05, 0.0, 0.45], atol=0.02
     )
 
-    enopt_config["optimizer"]["options"] = ["BB_OUTPUT_TYPE OBJ PB PB"]
+    enopt_config["backend"]["options"] = ["BB_OUTPUT_TYPE OBJ PB PB"]
     optimizer = BasicOptimizer(enopt_config, evaluator())
     with pytest.raises(
         ValueError,
@@ -327,7 +327,7 @@ def test_nomad_bb_output_type(
 def test_nomad_bb_max_block_size_no_parallel(
     enopt_config: dict[str, Any], evaluator: Any
 ) -> None:
-    enopt_config["optimizer"]["options"] = ["BB_MAX_BLOCK_SIZE 4"]
+    enopt_config["backend"]["options"] = ["BB_MAX_BLOCK_SIZE 4"]
     optimizer = BasicOptimizer(enopt_config, evaluator())
     with pytest.raises(
         ValueError,
@@ -339,7 +339,7 @@ def test_nomad_bb_max_block_size_no_parallel(
 def test_nomad_parallel_no_bb_max_block_size(
     enopt_config: dict[str, Any], evaluator: Any
 ) -> None:
-    enopt_config["optimizer"]["parallel"] = True
+    enopt_config["backend"]["parallel"] = True
     optimizer = BasicOptimizer(enopt_config, evaluator())
     with pytest.raises(
         ValueError,
@@ -354,11 +354,11 @@ def test_nomad_evaluation_failure(
 ) -> None:
     enopt_config["variables"]["lower_bounds"] = [0.15, -0.5, -1.0]
     enopt_config["variables"]["upper_bounds"] = [1.0, 0.5, 0.2]
-    enopt_config["optimizer"]["max_iterations"] = 4
+    enopt_config["backend"]["max_iterations"] = 4
     enopt_config["realizations"] = {"realization_min_success": 0}
-    enopt_config["optimizer"]["parallel"] = parallel
+    enopt_config["backend"]["parallel"] = parallel
     if parallel:
-        enopt_config["optimizer"]["options"] = ["BB_MAX_BLOCK_SIZE 4"]
+        enopt_config["backend"]["options"] = ["BB_MAX_BLOCK_SIZE 4"]
 
     optimizer1 = BasicOptimizer(enopt_config, evaluator())
     optimizer1.run(initial_values)

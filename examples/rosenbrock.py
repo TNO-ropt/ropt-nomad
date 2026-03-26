@@ -16,7 +16,7 @@ CONFIG: dict[str, Any] = {
         "lower_bounds": [0.4, 0.3],
         "upper_bounds": [1.7, 1.8],
     },
-    "optimizer": {
+    "backend": {
         "method": "nomad/default",
         "max_iterations": 10,
         "output_dir": ".",

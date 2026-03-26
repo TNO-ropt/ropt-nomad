@@ -9,12 +9,12 @@ from typing import TYPE_CHECKING, Annotated, Any, Final
 import numpy as np
 import PyNomad
 from pydantic import Field
+from ropt.backend import Backend
+from ropt.backend.utils import NormalizedConstraints, get_masked_linear_constraints
 from ropt.config.options import OptionsSchemaModel
 from ropt.enums import VariableType
 from ropt.exceptions import ComputeStepAborted
-from ropt.optimizer import Optimizer
-from ropt.optimizer.utils import NormalizedConstraints, get_masked_linear_constraints
-from ropt.plugins.optimizer import OptimizerPlugin
+from ropt.plugins.backend import BackendPlugin
 
 if TYPE_CHECKING:
     from numpy.typing import NDArray
@@ -25,7 +25,7 @@ _SUPPORTED_METHODS: Final = {"mads"}
 _DEFAULT_METHOD: Final = "mads"
 
 
-class NomadOptimizer(Optimizer):
+class NomadBackend(Backend):
     """Nomad optimization backend for ropt.
 
     This class provides an interface to the `MADS` optimization algorithm from
@@ -33,12 +33,12 @@ class NomadOptimizer(Optimizer):
     enabling their its within `ropt`.
 
     To select the `MADS` optimizer, set the `method` field within the
-    [`optimizer`][ropt.config.OptimizerConfig] section of the
+    [`optimizer`][ropt.config.BackendConfig] section of the
     [`EnOptConfig`][ropt.config.EnOptConfig] configuration object to
     `mads`. Most general options defined in the
     [`EnOptConfig`][ropt.config.EnOptConfig] object are supported. For
     algorithm-specific options, use the `options` dictionary within the
-    [`optimizer`][ropt.config.OptimizerConfig] section.
+    [`optimizer`][ropt.config.BackendConfig] section.
 
     The table below lists the `MADS`-specific options that are supported. Click
     on the method name to consult the
@@ -55,7 +55,7 @@ class NomadOptimizer(Optimizer):
     ) -> None:
         """Initialize the optimizer implemented by the nomad plugin.
 
-        See the [ropt.optimizer.Optimizer][] abstract base class.
+        See the [ropt.backend.Backend][] abstract base class.
 
         # noqa
         """
@@ -65,7 +65,7 @@ class NomadOptimizer(Optimizer):
         self._cached_function: NDArray[np.float64] | None = None
         self._exception: ComputeStepAborted | None = None
 
-        _, _, self._method = self._config.optimizer.method.lower().rpartition("/")
+        _, _, self._method = self._config.backend.method.lower().rpartition("/")
         if self._method == "default":
             self._method = _DEFAULT_METHOD
         if self._method not in _SUPPORTED_METHODS:
@@ -76,16 +76,16 @@ class NomadOptimizer(Optimizer):
     def is_parallel(self) -> bool:
         """Whether the current run is parallel.
 
-        See the [ropt.optimizer.Optimizer][] abstract base class.
+        See the [ropt.backend.Backend][] abstract base class.
 
         # noqa
         """
-        return self._config.optimizer.parallel
+        return self._config.backend.parallel
 
     def start(self, initial_values: NDArray[np.float64]) -> None:
         """Start the optimization.
 
-        See the [ropt.optimizer.Optimizer][] abstract base class.
+        See the [ropt.backend.Backend][] abstract base class.
 
         # noqa
         """
@@ -110,7 +110,7 @@ class NomadOptimizer(Optimizer):
     def allow_nan(self) -> bool:
         """Whether NaN is allowed.
 
-        See the [ropt.optimizer.Optimizer][] abstract base class.
+        See the [ropt.backend.Backend][] abstract base class.
 
         # noqa
         """
@@ -178,11 +178,11 @@ class NomadOptimizer(Optimizer):
         have_bb_max_block_size = False
         bb_input_type = None
 
-        if self._config.optimizer.max_iterations is not None:
-            parameters.append(f"MAX_ITERATIONS {self._config.optimizer.max_iterations}")
+        if self._config.backend.max_iterations is not None:
+            parameters.append(f"MAX_ITERATIONS {self._config.backend.max_iterations}")
 
-        if isinstance(self._config.optimizer.options, list):
-            for option in self._config.optimizer.options:
+        if isinstance(self._config.backend.options, list):
+            for option in self._config.backend.options:
                 types = self._config.variables.types[self._config.variables.mask]
                 bb_input_type = "BB_INPUT_TYPE ("
                 for item in types:
@@ -196,7 +196,7 @@ class NomadOptimizer(Optimizer):
                     bb_output_type = None
 
                 if option.strip().startswith("BB_MAX_BLOCK_SIZE"):
-                    if self._config.optimizer.parallel is False:
+                    if self._config.backend.parallel is False:
                         msg = (
                             "Option Error: BB_MAX_BLOCK_SIZE may only be specified  "
                             "if the parallel option is True"
@@ -204,9 +204,9 @@ class NomadOptimizer(Optimizer):
                         raise ValueError(msg)
                     have_bb_max_block_size = True
 
-            parameters.extend(self._config.optimizer.options)
+            parameters.extend(self._config.backend.options)
 
-        if self._config.optimizer.parallel and have_bb_max_block_size is False:
+        if self._config.backend.parallel and have_bb_max_block_size is False:
             msg = (
                 "Option Error: BB_MAX_BLOCK_SIZE must be specified "
                 "if the parallel option is True"
@@ -324,26 +324,26 @@ class NomadOptimizer(Optimizer):
         return self._cached_function
 
 
-class NomadOptimizerPlugin(OptimizerPlugin):
+class NomadBackendPlugin(BackendPlugin):
     """Nomad optimizer plugin class."""
 
     @classmethod
     def create(
         cls, config: EnOptConfig, optimizer_callback: OptimizerCallback
-    ) -> NomadOptimizer:
+    ) -> NomadBackend:
         """Initialize the optimizer plugin.
 
-        See the [ropt.plugins.optimizer.OptimizerPlugin][] abstract base class.
+        See the [ropt.plugins.backend.BackendPlugin][] abstract base class.
 
         # noqa
         """  # noqa: DOC201
-        return NomadOptimizer(config, optimizer_callback)
+        return NomadBackend(config, optimizer_callback)
 
     @classmethod
     def is_supported(cls, method: str) -> bool:
         """Check if a method is supported.
 
-        See the [ropt.plugins.optimizer.OptimizerPlugin][] abstract base class.
+        See the [ropt.plugins.backend.BackendPlugin][] abstract base class.
 
         # noqa
         """  # noqa: DOC201
@@ -355,7 +355,7 @@ class NomadOptimizerPlugin(OptimizerPlugin):
     ) -> None:
         """Validate the options of a given method.
 
-        See the [ropt.plugins.optimizer.OptimizerPlugin][] abstract base class.
+        See the [ropt.plugins.backend.BackendPlugin][] abstract base class.
 
         # noqa
         """  # noqa: DOC501

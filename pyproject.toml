@@ -25,8 +25,8 @@ dependencies = ["PyNomadBBO"]
 "Repository" = "https://github.com/TNO-ropt/ropt-nomad"
 "Bug Tracker" = "https://github.com/TNO-ropt/ropt-nomad/issues"
 
-[project.entry-points."ropt.plugins.optimizer"]
-nomad = "ropt_nomad.nomad:NomadOptimizerPlugin"
+[project.entry-points."ropt.plugins.backend"]
+nomad = "ropt_nomad.nomad:NomadBackendPlugin"
 
 [tool.setuptools.packages.find]
 where = ["src"]
