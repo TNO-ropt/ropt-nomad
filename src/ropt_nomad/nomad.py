@@ -18,7 +18,7 @@ from ropt.plugins.backend import BackendPlugin
 
 if TYPE_CHECKING:
     from numpy.typing import NDArray
-    from ropt.config import EnOptConfig
+    from ropt.context import EnOptContext
     from ropt.core import OptimizerCallback
 
 _SUPPORTED_METHODS: Final = {"mads"}
@@ -34,9 +34,9 @@ class NomadBackend(Backend):
 
     To select the `MADS` optimizer, set the `method` field within the
     [`optimizer`][ropt.config.BackendConfig] section of the
-    [`EnOptConfig`][ropt.config.EnOptConfig] configuration object to
+    [`EnOptContext`][ropt.context.EnOptContext] configuration object to
     `mads`. Most general options defined in the
-    [`EnOptConfig`][ropt.config.EnOptConfig] object are supported. For
+    [`EnOptContext`][ropt.context.EnOptContext] object are supported. For
     algorithm-specific options, use the `options` dictionary within the
     [`optimizer`][ropt.config.BackendConfig] section.
 
@@ -50,7 +50,7 @@ class NomadBackend(Backend):
 
     def __init__(
         self,
-        enopt_config: EnOptConfig,
+        context: EnOptContext,
         optimizer_callback: OptimizerCallback,
     ) -> None:
         """Initialize the optimizer implemented by the nomad plugin.
@@ -59,13 +59,13 @@ class NomadBackend(Backend):
 
         # noqa
         """
-        self._config = enopt_config
+        self._context = context
         self._optimizer_callback = optimizer_callback
         self._cached_variables: NDArray[np.float64] | None = None
         self._cached_function: NDArray[np.float64] | None = None
         self._exception: ComputeStepAborted | None = None
 
-        _, _, self._method = self._config.backend.method.lower().rpartition("/")
+        _, _, self._method = self._context.backend.method.lower().rpartition("/")
         if self._method == "default":
             self._method = _DEFAULT_METHOD
         if self._method not in _SUPPORTED_METHODS:
@@ -80,7 +80,7 @@ class NomadBackend(Backend):
 
         # noqa
         """
-        return self._config.backend.parallel
+        return self._context.backend.parallel
 
     def start(self, initial_values: NDArray[np.float64]) -> None:
         """Start the optimization.
@@ -98,7 +98,7 @@ class NomadBackend(Backend):
 
         PyNomad.optimize(
             self._evaluate,
-            initial_values[self._config.variables.mask].tolist(),
+            initial_values[self._context.variables.mask].tolist(),
             self._bounds[0],
             self._bounds[1],
             self._parameters,
@@ -117,8 +117,12 @@ class NomadBackend(Backend):
         return True
 
     def _get_bounds(self) -> tuple[list[float], list[float]]:
-        lower_bounds = self._config.variables.lower_bounds[self._config.variables.mask]
-        upper_bounds = self._config.variables.upper_bounds[self._config.variables.mask]
+        lower_bounds = self._context.variables.lower_bounds[
+            self._context.variables.mask
+        ]
+        upper_bounds = self._context.variables.upper_bounds[
+            self._context.variables.mask
+        ]
         return lower_bounds.tolist(), upper_bounds.tolist()
 
     def _evaluate(
@@ -168,7 +172,7 @@ class NomadBackend(Backend):
     def _get_parameters(  # noqa: C901
         self, normalized_constraints: NormalizedConstraints | None
     ) -> list[str]:
-        dim = self._config.variables.mask.sum()
+        dim = self._context.variables.mask.sum()
         parameters = [f"DIMENSION {dim}"]
 
         constraints = (
@@ -178,12 +182,12 @@ class NomadBackend(Backend):
         have_bb_max_block_size = False
         bb_input_type = None
 
-        if self._config.backend.max_iterations is not None:
-            parameters.append(f"MAX_ITERATIONS {self._config.backend.max_iterations}")
+        if self._context.backend.max_iterations is not None:
+            parameters.append(f"MAX_ITERATIONS {self._context.backend.max_iterations}")
 
-        if isinstance(self._config.backend.options, list):
-            for option in self._config.backend.options:
-                types = self._config.variables.types[self._config.variables.mask]
+        if isinstance(self._context.backend.options, list):
+            for option in self._context.backend.options:
+                types = self._context.variables.types[self._context.variables.mask]
                 bb_input_type = "BB_INPUT_TYPE ("
                 for item in types:
                     bb_input_type += " I" if item == VariableType.INTEGER else " R"
@@ -196,7 +200,7 @@ class NomadBackend(Backend):
                     bb_output_type = None
 
                 if option.strip().startswith("BB_MAX_BLOCK_SIZE"):
-                    if self._config.backend.parallel is False:
+                    if self._context.backend.parallel is False:
                         msg = (
                             "Option Error: BB_MAX_BLOCK_SIZE may only be specified  "
                             "if the parallel option is True"
@@ -204,9 +208,9 @@ class NomadBackend(Backend):
                         raise ValueError(msg)
                     have_bb_max_block_size = True
 
-            parameters.extend(self._config.backend.options)
+            parameters.extend(self._context.backend.options)
 
-        if self._config.backend.parallel and have_bb_max_block_size is False:
+        if self._context.backend.parallel and have_bb_max_block_size is False:
             msg = (
                 "Option Error: BB_MAX_BLOCK_SIZE must be specified "
                 "if the parallel option is True"
@@ -241,17 +245,17 @@ class NomadBackend(Backend):
         self._linear_constraint_bounds: (
             tuple[NDArray[np.float64], NDArray[np.float64]] | None
         ) = None
-        if self._config.linear_constraints is not None:
+        if self._context.linear_constraints is not None:
             self._lin_coef, lin_lower, lin_upper = get_masked_linear_constraints(
-                self._config, initial_values
+                self._context, initial_values
             )
             self._linear_constraint_bounds = (lin_lower, lin_upper)
         nonlinear_bounds = (
             None
-            if self._config.nonlinear_constraints is None
+            if self._context.nonlinear_constraints is None
             else (
-                self._config.nonlinear_constraints.lower_bounds,
-                self._config.nonlinear_constraints.upper_bounds,
+                self._context.nonlinear_constraints.lower_bounds,
+                self._context.nonlinear_constraints.upper_bounds,
             )
         )
         if (bounds := self._get_constraint_bounds(nonlinear_bounds)) is not None:
@@ -278,7 +282,7 @@ class NomadBackend(Backend):
             return np.array([])
         if self._normalized_constraints.constraints is None:
             constraints = []
-            if self._config.nonlinear_constraints is not None:
+            if self._context.nonlinear_constraints is not None:
                 functions = self._get_functions(variables)
                 constraints.append(
                     (
@@ -329,7 +333,7 @@ class NomadBackendPlugin(BackendPlugin):
 
     @classmethod
     def create(
-        cls, config: EnOptConfig, optimizer_callback: OptimizerCallback
+        cls, context: EnOptContext, optimizer_callback: OptimizerCallback
     ) -> NomadBackend:
         """Initialize the optimizer plugin.
 
@@ -337,7 +341,7 @@ class NomadBackendPlugin(BackendPlugin):
 
         # noqa
         """  # noqa: DOC201
-        return NomadBackend(config, optimizer_callback)
+        return NomadBackend(context, optimizer_callback)
 
     @classmethod
     def is_supported(cls, method: str) -> bool:
