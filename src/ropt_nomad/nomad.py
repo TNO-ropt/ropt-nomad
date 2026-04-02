@@ -18,6 +18,7 @@ from ropt.plugins.backend import BackendPlugin
 
 if TYPE_CHECKING:
     from numpy.typing import NDArray
+    from ropt.config import BackendConfig
     from ropt.context import EnOptContext
     from ropt.core import OptimizerCallback
 
@@ -48,7 +49,22 @@ class NomadBackend(Backend):
     --8<-- "nomad.md"
     """
 
-    def __init__(
+    def __init__(self, backend_config: BackendConfig) -> None:
+        """Initialize the Nomad optimizer backend.
+
+        Args:
+            backend_config: The configuration for the backend, containing the
+                            method name and options.
+        """
+        _, _, self._method = backend_config.method.lower().rpartition("/")
+        if self._method == "default":
+            self._method = _DEFAULT_METHOD
+        if self._method not in _SUPPORTED_METHODS:
+            msg = f"NOMAD optimizer algorithm {self._method} is not supported"
+            raise NotImplementedError(msg)
+        self._config = backend_config
+
+    def init(
         self,
         context: EnOptContext,
         optimizer_callback: OptimizerCallback,
@@ -65,13 +81,6 @@ class NomadBackend(Backend):
         self._cached_function: NDArray[np.float64] | None = None
         self._exception: ComputeStepAborted | None = None
 
-        _, _, self._method = self._context.backend.method.lower().rpartition("/")
-        if self._method == "default":
-            self._method = _DEFAULT_METHOD
-        if self._method not in _SUPPORTED_METHODS:
-            msg = f"NOMAD optimizer algorithm {self._method} is not supported"
-            raise NotImplementedError(msg)
-
     @property
     def is_parallel(self) -> bool:
         """Whether the current run is parallel.
@@ -80,7 +89,7 @@ class NomadBackend(Backend):
 
         # noqa
         """
-        return self._context.backend.parallel
+        return self._config.parallel
 
     def start(self, initial_values: NDArray[np.float64]) -> None:
         """Start the optimization.
@@ -182,11 +191,11 @@ class NomadBackend(Backend):
         have_bb_max_block_size = False
         bb_input_type = None
 
-        if self._context.backend.max_iterations is not None:
-            parameters.append(f"MAX_ITERATIONS {self._context.backend.max_iterations}")
+        if self._config.max_iterations is not None:
+            parameters.append(f"MAX_ITERATIONS {self._config.max_iterations}")
 
-        if isinstance(self._context.backend.options, list):
-            for option in self._context.backend.options:
+        if isinstance(self._config.options, list):
+            for option in self._config.options:
                 types = self._context.variables.types[self._context.variables.mask]
                 bb_input_type = "BB_INPUT_TYPE ("
                 for item in types:
@@ -200,7 +209,7 @@ class NomadBackend(Backend):
                     bb_output_type = None
 
                 if option.strip().startswith("BB_MAX_BLOCK_SIZE"):
-                    if self._context.backend.parallel is False:
+                    if self._config.parallel is False:
                         msg = (
                             "Option Error: BB_MAX_BLOCK_SIZE may only be specified  "
                             "if the parallel option is True"
@@ -208,9 +217,9 @@ class NomadBackend(Backend):
                         raise ValueError(msg)
                     have_bb_max_block_size = True
 
-            parameters.extend(self._context.backend.options)
+            parameters.extend(self._config.options)
 
-        if self._context.backend.parallel and have_bb_max_block_size is False:
+        if self._config.parallel and have_bb_max_block_size is False:
             msg = (
                 "Option Error: BB_MAX_BLOCK_SIZE must be specified "
                 "if the parallel option is True"
@@ -332,16 +341,14 @@ class NomadBackendPlugin(BackendPlugin):
     """Nomad optimizer plugin class."""
 
     @classmethod
-    def create(
-        cls, context: EnOptContext, optimizer_callback: OptimizerCallback
-    ) -> NomadBackend:
+    def create(cls, backend_config: BackendConfig) -> NomadBackend:
         """Initialize the optimizer plugin.
 
         See the [ropt.plugins.backend.BackendPlugin][] abstract base class.
 
         # noqa
         """  # noqa: DOC201
-        return NomadBackend(context, optimizer_callback)
+        return NomadBackend(backend_config)
 
     @classmethod
     def is_supported(cls, method: str) -> bool:

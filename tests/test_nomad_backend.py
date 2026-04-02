@@ -268,21 +268,19 @@ def test_nomad_le_ge_linear_constraints_two_sided(
 
 def test_nomad_dimension_keyword(config: dict[str, Any], evaluator: Any) -> None:
     config["backend"]["options"] = ["DIMENSION 4"]
-    optimizer = BasicOptimizer(config, evaluator())
     with pytest.raises(
         ValidationError, match=r"Unknown or unsupported option\(s\): `DIMENSION`"
     ):
-        optimizer.run(initial_values)
+        BasicOptimizer(config, evaluator())
 
 
 def test_nomad_max_iterations_keyword(config: dict[str, Any], evaluator: Any) -> None:
     config["backend"]["options"] = ["MAX_ITERATIONS 4"]
-    optimizer = BasicOptimizer(config, evaluator())
     with pytest.raises(
         ValidationError,
         match=r"Unknown or unsupported option\(s\): `MAX_ITERATIONS`",
     ):
-        optimizer.run(initial_values)
+        BasicOptimizer(config, evaluator())
 
 
 @pytest.mark.parametrize(

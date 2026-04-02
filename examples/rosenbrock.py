@@ -19,6 +19,8 @@ CONFIG: dict[str, Any] = {
     "backend": {
         "method": "nomad/default",
         "max_iterations": 10,
+    },
+    "optimizer": {
         "output_dir": ".",
     },
 }

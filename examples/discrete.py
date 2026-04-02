@@ -21,6 +21,8 @@ CONFIG: dict[str, Any] = {
     "backend": {
         "method": "nomad/default",
         "options": ["MAX_EVAL 100"],
+    },
+    "optimizer": {
         "output_dir": ".",
     },
     "nonlinear_constraints": {
