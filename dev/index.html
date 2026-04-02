@@ -342,10 +342,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#ropt_nomad.nomad.NomadOptimizer" class="md-nav__link">
+  <a href="#ropt_nomad.nomad.NomadBackend" class="md-nav__link">
     <span class="md-ellipsis">
       
-        NomadOptimizer
+        NomadBackend
       
     </span>
   </a>
@@ -409,10 +409,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#ropt_nomad.nomad.NomadOptimizer" class="md-nav__link">
+  <a href="#ropt_nomad.nomad.NomadBackend" class="md-nav__link">
     <span class="md-ellipsis">
       
-        NomadOptimizer
+        NomadBackend
       
     </span>
   </a>
@@ -453,15 +453,15 @@ optimization run. However, there are a few things to consider:</p>
 <ol>
 <li>Gradients are not used, any specifications relating to gradient calculations
    in <code>ropt</code> are ignored.</li>
-<li>The <code>tolerance</code> optimization parameter, which can be specified in the
-   optimization section is ignored.</li>
+<li>The <code>convergence_tolerance</code> optimization parameter, which can be specified in
+   the optimization section is ignored.</li>
 <li>Only inequality constraints are supported by <code>NOMAD</code>.</li>
 <li>Linear and non-linear constraints are both supported. Linear constraints are
    not supported directly, but are internally converted to non-linear
    constraints.</li>
 <li>Some additional <code>Nomad</code> options can be passed as a list of strings via the
    <code>options</code> field in the optimizer configuration. Refer to the documentation of
-   the <a class="autorefs autorefs-internal" title="            ropt_nomad.nomad.NomadOptimizer" href="#ropt_nomad.nomad.NomadOptimizer"><code>NomadOptimizer</code></a> class for supported
+   the <a class="autorefs autorefs-internal" title="            ropt_nomad.nomad.NomadBackend" href="#ropt_nomad.nomad.NomadBackend"><code>NomadBackend</code></a> class for supported
    options.</li>
 </ol>
 <h2 id="reference">Reference</h2>
@@ -471,8 +471,8 @@ optimization run. However, there are a few things to consider:</p>
 
 
 
-<h2 id="ropt_nomad.nomad.NomadOptimizer" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <span class="doc doc-object-name doc-class-name">ropt_nomad.nomad.NomadOptimizer</span>
+<h2 id="ropt_nomad.nomad.NomadBackend" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <span class="doc doc-object-name doc-class-name">ropt_nomad.nomad.NomadBackend</span>
 
 
 </h2>
@@ -480,7 +480,7 @@ optimization run. However, there are a few things to consider:</p>
 
     <div class="doc doc-contents first">
             <p class="doc doc-class-bases">
-              Bases: <code><span title="ropt.optimizer.Optimizer">Optimizer</span></code></p>
+              Bases: <code><a class="autorefs autorefs-external" title="ropt.backend.Backend" href="https://tno-ropt.github.io/ropt/latest/reference/plugins/optimizer/backend/#ropt.backend.Backend">Backend</a></code></p>
 
 
 
@@ -489,12 +489,12 @@ optimization run. However, there are a few things to consider:</p>
 <a href="https://nomad-4-user-guide.readthedocs.io/en/latest/index.html"><code>Nomad</code></a>,
 enabling their its within <code>ropt</code>.</p>
 <p>To select the <code>MADS</code> optimizer, set the <code>method</code> field within the
-<a class="autorefs autorefs-external" href="https://tno-ropt.github.io/ropt/latest/reference/enopt_config/#ropt.config.OptimizerConfig"><code>optimizer</code></a> section of the
-<a class="autorefs autorefs-external" href="https://tno-ropt.github.io/ropt/latest/reference/enopt_config/#ropt.config.EnOptConfig"><code>EnOptConfig</code></a> configuration object to
+<a class="autorefs autorefs-external" href="https://tno-ropt.github.io/ropt/latest/reference/optimization/enopt_context/#ropt.config.BackendConfig"><code>optimizer</code></a> section of the
+<a class="autorefs autorefs-external" href="https://tno-ropt.github.io/ropt/latest/reference/optimization/enopt_context/#ropt.context.EnOptContext"><code>EnOptContext</code></a> configuration object to
 <code>mads</code>. Most general options defined in the
-<a class="autorefs autorefs-external" href="https://tno-ropt.github.io/ropt/latest/reference/enopt_config/#ropt.config.EnOptConfig"><code>EnOptConfig</code></a> object are supported. For
+<a class="autorefs autorefs-external" href="https://tno-ropt.github.io/ropt/latest/reference/optimization/enopt_context/#ropt.context.EnOptContext"><code>EnOptContext</code></a> object are supported. For
 algorithm-specific options, use the <code>options</code> dictionary within the
-<a class="autorefs autorefs-external" href="https://tno-ropt.github.io/ropt/latest/reference/enopt_config/#ropt.config.OptimizerConfig"><code>optimizer</code></a> section.</p>
+<a class="autorefs autorefs-external" href="https://tno-ropt.github.io/ropt/latest/reference/optimization/enopt_context/#ropt.config.BackendConfig"><code>optimizer</code></a> section.</p>
 <p>The table below lists the <code>MADS</code>-specific options that are supported. Click
 on the method name to consult the
 <a href="https://nomad-4-user-guide.readthedocs.io/en/latest/index.html"><code>Nomad</code></a>
