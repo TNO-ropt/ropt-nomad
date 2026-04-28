@@ -13,7 +13,7 @@ from ropt.backend import Backend
 from ropt.backend.utils import NormalizedConstraints, get_masked_linear_constraints
 from ropt.config.options import OptionsSchemaModel
 from ropt.enums import VariableType
-from ropt.exceptions import ComputeStepAborted
+from ropt.exceptions import Abort
 from ropt.plugins.backend import BackendPlugin
 
 if TYPE_CHECKING:
@@ -79,7 +79,7 @@ class NomadBackend(Backend):
         self._optimizer_callback = optimizer_callback
         self._cached_variables: NDArray[np.float64] | None = None
         self._cached_function: NDArray[np.float64] | None = None
-        self._exception: ComputeStepAborted | None = None
+        self._exception: Abort | None = None
 
     @property
     def is_parallel(self) -> bool:
@@ -157,7 +157,7 @@ class NomadBackend(Backend):
         try:
             objectives = self._calculate_objective(variables)
             constraints = self._calculate_constraints(variables)
-        except ComputeStepAborted as exc:
+        except Abort as exc:
             self._exception = exc
             return (
                 0
