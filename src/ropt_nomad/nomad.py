@@ -125,6 +125,50 @@ class NomadBackend(Backend):
         """
         return True
 
+    def validate_options(self) -> None:
+        """Validate the options of a given method.
+
+        See the [ropt.plugins.backend.BackendPlugin][] abstract base class.
+
+        # noqa
+        """  # noqa: DOC501
+        if self._config.options is not None:
+            if not isinstance(self._config.options, list):
+                msg = "The Nomad optimizer options must be a list of strings"
+                raise TypeError(msg)
+            options_dict: dict[str, Any] = {}
+            for option in self._config.options:
+                split_option = re.split(r"\s+", option.strip(), maxsplit=1)
+                options_dict[split_option[0]] = (
+                    split_option[1]
+                    if len(split_option) > 1 and split_option[1].strip()
+                    else "yes"
+                )
+            *_, method = self._method.rpartition("/")
+            OptionsSchemaModel.model_validate(_OPTIONS_SCHEMA).get_options_model(
+                _DEFAULT_METHOD if method == "default" else method
+            ).model_validate(options_dict)
+
+            for option in self._config.options:
+                if option.strip().startswith("BB_OUTPUT_TYPE"):
+                    output_types = option.split()
+                    if output_types[1] != "OBJ":
+                        msg = (
+                            "Option Error: First argument of BB_OUTPUT_TYPE must be OBJ"
+                        )
+                        raise ValueError(msg)
+                    invalid_types = {
+                        output_type
+                        for output_type in output_types[2:]
+                        if output_type not in {"EB", "F", "PB", "CSTR"}
+                    }
+                    if invalid_types:
+                        msg = (
+                            "Option Error: Invalid output type(s) in "
+                            f"BB_OUTPUT_TYPE: {invalid_types}"
+                        )
+                        raise ValueError(msg)
+
     def _get_bounds(self) -> tuple[list[float], list[float]]:
         lower_bounds = self._context.variables.lower_bounds[
             self._context.variables.mask
@@ -359,53 +403,6 @@ class NomadBackendPlugin(BackendPlugin):
         # noqa
         """  # noqa: DOC201
         return method.lower() in (_SUPPORTED_METHODS | {"default"})
-
-    @classmethod
-    def validate_options(
-        cls, method: str, options: dict[str, Any] | list[str] | None
-    ) -> None:
-        """Validate the options of a given method.
-
-        See the [ropt.plugins.backend.BackendPlugin][] abstract base class.
-
-        # noqa
-        """  # noqa: DOC501
-        if options is not None:
-            if not isinstance(options, list):
-                msg = "The Nomad optimizer options must be a list of strings"
-                raise TypeError(msg)
-            options_dict: dict[str, Any] = {}
-            for option in options:
-                split_option = re.split(r"\s+", option.strip(), maxsplit=1)
-                options_dict[split_option[0]] = (
-                    split_option[1]
-                    if len(split_option) > 1 and split_option[1].strip()
-                    else "yes"
-                )
-            *_, method = method.rpartition("/")
-            OptionsSchemaModel.model_validate(_OPTIONS_SCHEMA).get_options_model(
-                _DEFAULT_METHOD if method == "default" else method
-            ).model_validate(options_dict)
-
-            for option in options:
-                if option.strip().startswith("BB_OUTPUT_TYPE"):
-                    output_types = option.split()
-                    if output_types[1] != "OBJ":
-                        msg = (
-                            "Option Error: First argument of BB_OUTPUT_TYPE must be OBJ"
-                        )
-                        raise ValueError(msg)
-                    invalid_types = {
-                        output_type
-                        for output_type in output_types[2:]
-                        if output_type not in {"EB", "F", "PB", "CSTR"}
-                    }
-                    if invalid_types:
-                        msg = (
-                            "Option Error: Invalid output type(s) in "
-                            f"BB_OUTPUT_TYPE: {invalid_types}"
-                        )
-                        raise ValueError(msg)
 
 
 _OPTIONS_SCHEMA: dict[str, Any] = {
