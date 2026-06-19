@@ -5,7 +5,7 @@ from typing import Any
 import numpy as np
 from numpy.typing import NDArray
 from ropt.enums import VariableType
-from ropt.evaluator import EvaluatorContext, EvaluatorResult
+from ropt.evaluation import EvaluationBatchContext, EvaluationBatchResult
 from ropt.results import FunctionResults, Results
 from ropt.workflow import BasicOptimizer
 
@@ -32,7 +32,7 @@ CONFIG: dict[str, Any] = {
 }
 
 
-def function(variables: NDArray[np.float64], _: EvaluatorContext) -> EvaluatorResult:
+def function(variables: NDArray[np.float64], _: EvaluationBatchContext) -> EvaluationBatchResult:
     """Evaluate the function.
 
     Args:
@@ -44,7 +44,7 @@ def function(variables: NDArray[np.float64], _: EvaluatorContext) -> EvaluatorRe
     x, y = variables[0, :]
     objectives = np.array(-min(3 * x, y), ndmin=2, dtype=np.float64)
     constraints = np.array(x + y - 10, ndmin=2, dtype=np.float64)
-    return EvaluatorResult(objectives=objectives, constraints=constraints)
+    return EvaluationBatchResult(objectives=objectives, constraints=constraints)
 
 
 def report(results: tuple[Results, ...]) -> None:
