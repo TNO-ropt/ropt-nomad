@@ -13,7 +13,6 @@ from ropt.backend import Backend
 from ropt.backend.utils import NormalizedConstraints, get_masked_linear_constraints
 from ropt.config.options import OptionsSchemaModel
 from ropt.enums import VariableType
-from ropt.exceptions import Abort
 from ropt.plugins.backend import BackendPlugin
 
 if TYPE_CHECKING:
@@ -79,7 +78,7 @@ class NomadBackend(Backend):
         self._optimizer_callback = optimizer_callback
         self._cached_variables: NDArray[np.float64] | None = None
         self._cached_function: NDArray[np.float64] | None = None
-        self._exception: Abort | None = None
+        self._exception: Exception | None = None
 
     @property
     def is_parallel(self) -> bool:
@@ -182,6 +181,12 @@ class NomadBackend(Backend):
         self,
         block_or_eval_point: PyNomad.PyNomadEvalPoint | PyNomad.PyNomadBlock,
     ) -> int | list[int]:
+        if self._exception is not None:
+            return (
+                0
+                if isinstance(block_or_eval_point, PyNomad.PyNomadEvalPoint)
+                else [0] * block_or_eval_point.size()
+            )
         if isinstance(block_or_eval_point, PyNomad.PyNomadEvalPoint):
             eval_points = [block_or_eval_point]
         else:
@@ -201,13 +206,14 @@ class NomadBackend(Backend):
         try:
             objectives = self._calculate_objective(variables)
             constraints = self._calculate_constraints(variables)
-        except Abort as exc:
+        except Exception as exc:  # noqa: BLE001
             self._exception = exc
             return (
                 0
                 if isinstance(block_or_eval_point, PyNomad.PyNomadEvalPoint)
                 else [0] * len(eval_points)
             )
+
         for idx, eval_point in enumerate(eval_points):
             result_string = str(objectives[idx])
             if constraints.size:
