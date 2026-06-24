@@ -233,19 +233,20 @@ class NomadBackend(Backend):
         )
         bb_output_type: str | None = "BB_OUTPUT_TYPE OBJ" + " EB" * constraints
         have_bb_max_block_size = False
-        bb_input_type = None
 
         if self._config.max_iterations is not None:
             parameters.append(f"MAX_ITERATIONS {self._config.max_iterations}")
 
+        bb_input_type = None
+        types = self._context.variables.types[self._context.variables.mask]
+        if types is not None:
+            bb_input_type = "BB_INPUT_TYPE ("
+            for item in types:
+                bb_input_type += " I" if item == VariableType.INTEGER else " R"
+            bb_input_type += " )"
+
         if isinstance(self._config.options, list):
             for option in self._config.options:
-                types = self._context.variables.types[self._context.variables.mask]
-                bb_input_type = "BB_INPUT_TYPE ("
-                for item in types:
-                    bb_input_type += " I" if item == VariableType.INTEGER else " R"
-                bb_input_type += " )"
-
                 if option.strip().startswith("BB_OUTPUT_TYPE"):
                     if len(option.split()) != constraints + 2:
                         msg = "Option Error: BB_OUTPUT_TYPE specifies incorrect number of outputs"
@@ -409,6 +410,7 @@ _OPTIONS_SCHEMA: dict[str, Any] = {
     "methods": {
         "mads": {
             "options": {
+                "BB_INPUT_TYPE": str,
                 "BB_OUTPUT_TYPE": str,
                 "BB_MAX_BLOCK_SIZE": Annotated[int, Field(gt=0)],
                 "MAX_BB_EVAL": int,

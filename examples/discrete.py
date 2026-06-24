@@ -32,7 +32,9 @@ CONFIG: dict[str, Any] = {
 }
 
 
-def function(variables: NDArray[np.float64], _: EvaluationBatchContext) -> EvaluationBatchResult:
+def function(
+    variables: NDArray[np.float64], _: EvaluationBatchContext
+) -> EvaluationBatchResult:
     """Evaluate the function.
 
     Args:

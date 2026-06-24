@@ -26,7 +26,9 @@ CONFIG: dict[str, Any] = {
 }
 
 
-def rosenbrock(variables: NDArray[np.float64], _: EvaluationBatchContext) -> EvaluationBatchResult:
+def rosenbrock(
+    variables: NDArray[np.float64], _: EvaluationBatchContext
+) -> EvaluationBatchResult:
     """Evaluate the rosenbrock function.
 
     Args:
