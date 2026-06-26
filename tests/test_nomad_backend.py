@@ -125,11 +125,11 @@ def test_nomad_ineq_nonlinear_constraints(  # noqa: PLR0917
         config["backend"]["options"] = ["BB_MAX_BLOCK_SIZE 4"]
 
     weight = 1.0 if upper_bounds == 0.4 else -1.0
-    test_functions = (
-        *test_functions,
-        lambda variables, _: weight * variables[0] + weight * variables[2],
-    )
-    optimizer = BasicOptimizer(config, evaluator(test_functions))
+
+    def constraint_function(variables: Any, _: Any) -> Any:
+        return weight * float(variables[0] + variables[2])
+
+    optimizer = BasicOptimizer(config, evaluator(test_functions, [constraint_function]))
     optimizer.run(initial_values)
     assert optimizer.results is not None
     assert np.allclose(
@@ -152,11 +152,10 @@ def test_nomad_eq_nonlinear_constraints(
     if parallel:
         config["backend"]["options"] = ["BB_MAX_BLOCK_SIZE 4"]
 
-    test_functions = (
-        *test_functions,
-        lambda variables, _: variables[0] + variables[2],
-    )
-    optimizer = BasicOptimizer(config, evaluator(test_functions))
+    def constraint_function(variables: Any, _: Any) -> Any:
+        return float(variables[0] + variables[2])
+
+    optimizer = BasicOptimizer(config, evaluator(test_functions, [constraint_function]))
     with pytest.raises(
         ValueError,
         match="Equality constraints are not supported by NOMAD",
@@ -178,12 +177,11 @@ def test_nomad_ineq_nonlinear_constraints_two_sided(
     config["backend"]["parallel"] = parallel
     if parallel:
         config["backend"]["options"] = ["BB_MAX_BLOCK_SIZE 4"]
-    test_functions = (
-        *test_functions,
-        lambda variables, _: variables[0] + variables[2],
-    )
 
-    optimizer = BasicOptimizer(config, evaluator(test_functions))
+    def constraint_function(variables: Any, _: Any) -> Any:
+        return float(variables[0] + variables[2])
+
+    optimizer = BasicOptimizer(config, evaluator(test_functions, [constraint_function]))
     optimizer.run(initial_values)
     assert optimizer.results is not None
     assert np.allclose(
@@ -300,11 +298,11 @@ def test_nomad_bb_output_type(
     config["backend"]["options"] = ["BB_OUTPUT_TYPE OBJ PB"]
 
     weight = 1.0 if upper_bounds == 0.4 else -1.0
-    test_functions = (
-        *test_functions,
-        lambda variables, _: weight * variables[0] + weight * variables[2],
-    )
-    optimizer = BasicOptimizer(config, evaluator(test_functions))
+
+    def constraint_function(variables: Any, _: Any) -> Any:
+        return weight * float(variables[0] + variables[2])
+
+    optimizer = BasicOptimizer(config, evaluator(test_functions, [constraint_function]))
     optimizer.run(initial_values)
     assert optimizer.results is not None
     assert np.allclose(
