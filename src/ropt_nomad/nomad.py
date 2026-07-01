@@ -114,16 +114,6 @@ class NomadBackend(Backend):
         if self._exception is not None:
             raise self._exception
 
-    @property
-    def allow_nan(self) -> bool:
-        """Whether NaN is allowed.
-
-        See the [ropt.backend.Backend][] abstract base class.
-
-        # noqa
-        """
-        return True
-
     def validate_options(self) -> None:
         """Validate the options of a given method.
 
