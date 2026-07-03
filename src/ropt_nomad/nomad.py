@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import re
 from pathlib import Path
 from typing import TYPE_CHECKING, Annotated, Any, Final
@@ -20,6 +21,8 @@ if TYPE_CHECKING:
     from ropt.config import BackendConfig
     from ropt.context import EnOptContext
     from ropt.core import OptimizerCallback
+
+_logger = logging.getLogger("ropt.backend.nomad")
 
 _SUPPORTED_METHODS: Final = {"mads"}
 _DEFAULT_METHOD: Final = "mads"
@@ -79,6 +82,7 @@ class NomadBackend(Backend):
         self._cached_variables: NDArray[np.float64] | None = None
         self._cached_function: NDArray[np.float64] | None = None
         self._exception: Exception | None = None
+        _logger.debug("Using NOMAD optimizer: %s", self._method)
 
     @property
     def is_parallel(self) -> bool:
@@ -197,6 +201,7 @@ class NomadBackend(Backend):
             objectives = self._calculate_objective(variables)
             constraints = self._calculate_constraints(variables)
         except Exception as exc:  # noqa: BLE001
+            _logger.warning("Evaluation failed: %s", exc)
             self._exception = exc
             return (
                 0
