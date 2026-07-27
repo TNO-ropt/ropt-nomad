@@ -1,4 +1,4 @@
-# ruff: noqa: RUF069
+# ruff: file-ignore[float-equality-comparison]
 
 from typing import Any
 
@@ -9,7 +9,7 @@ from ropt.workflow import BasicOptimizer, validate_backend_options
 
 initial_values = [0.2, 0.0, 0.1]
 
-# ruff: noqa: FBT001
+# ruff: file-ignore[boolean-type-hint-positional-argument]
 
 
 @pytest.fixture(name="config")
@@ -108,7 +108,7 @@ def test_nomad_bound_constraints_block_size_one(
 @pytest.mark.parametrize(
     ("lower_bounds", "upper_bounds"), [(-np.inf, 0.4), (-0.4, np.inf)]
 )
-def test_nomad_ineq_nonlinear_constraints(  # noqa: PLR0917
+def test_nomad_ineq_nonlinear_constraints(  # ruff: ignore[too-many-positional-arguments]
     config: dict[str, Any],
     lower_bounds: Any,
     upper_bounds: Any,
