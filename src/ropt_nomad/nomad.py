@@ -124,7 +124,7 @@ class NomadBackend(Backend):
         See the [ropt.plugins.backend.BackendPlugin][] abstract base class.
 
         # noqa
-        """  # noqa: DOC501
+        """  # ruff: ignore[docstring-missing-exception]
         if self._config.options is not None:
             if not isinstance(self._config.options, list):
                 msg = "The Nomad optimizer options must be a list of strings"
@@ -200,7 +200,7 @@ class NomadBackend(Backend):
         try:
             objectives = self._calculate_objective(variables)
             constraints = self._calculate_constraints(variables)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:  # ruff: ignore[blind-except]
             _logger.warning("Evaluation failed: %s", exc)
             self._exception = exc
             return (
@@ -223,7 +223,7 @@ class NomadBackend(Backend):
             else [int(not np.isnan(objective)) for objective in objectives]
         )
 
-    def _get_parameters(  # noqa: C901
+    def _get_parameters(  # ruff: ignore[complex-structure]
         self, normalized_constraints: NormalizedConstraints | None
     ) -> list[str]:
         dim = self._context.variables.mask.sum()
@@ -393,7 +393,7 @@ class NomadBackendPlugin(BackendPlugin):
         See the [ropt.plugins.backend.BackendPlugin][] abstract base class.
 
         # noqa
-        """  # noqa: DOC201
+        """  # ruff: ignore[docstring-missing-returns]
         return NomadBackend(backend_config)
 
     @classmethod
@@ -403,7 +403,7 @@ class NomadBackendPlugin(BackendPlugin):
         See the [ropt.plugins.backend.BackendPlugin][] abstract base class.
 
         # noqa
-        """  # noqa: DOC201
+        """  # ruff: ignore[docstring-missing-returns]
         return method.lower() in (_SUPPORTED_METHODS | {"default"})
 
 
