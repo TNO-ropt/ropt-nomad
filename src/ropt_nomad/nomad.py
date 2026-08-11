@@ -14,6 +14,7 @@ from ropt.backend import Backend
 from ropt.backend.utils import NormalizedConstraints, get_masked_linear_constraints
 from ropt.config.options import OptionsSchemaModel
 from ropt.enums import VariableType
+from ropt.exceptions import UnsupportedError
 from ropt.plugins.backend import BackendPlugin
 
 if TYPE_CHECKING:
@@ -57,13 +58,13 @@ class NomadBackend(Backend):
         Args:
             backend_config: The configuration for the backend, containing the
                             method name and options.
-        """
+        """  # ruff: ignore[docstring-missing-exception]
         _, _, self._method = backend_config.method.lower().rpartition("/")
         if self._method == "default":
             self._method = _DEFAULT_METHOD
         if self._method not in _SUPPORTED_METHODS:
-            msg = f"NOMAD optimizer algorithm {self._method} is not supported"
-            raise NotImplementedError(msg)
+            msg = f"NOMAD optimizer algorithm '{self._method}' is not supported."
+            raise UnsupportedError(msg)
         self._config = backend_config
 
     def init(
