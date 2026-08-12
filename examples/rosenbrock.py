@@ -4,9 +4,7 @@ from typing import Any
 
 import numpy as np
 from numpy.typing import NDArray
-from ropt.evaluation import EvaluationBatchContext, EvaluationBatchResult
-from ropt.results import FunctionResults, Results
-from ropt.workflow import BasicOptimizer
+from ropt.simple import EvaluateResult, EvaluationFunctionContext, optimize
 
 initial_values = 2 * [0.4]
 
@@ -26,9 +24,7 @@ CONFIG: dict[str, Any] = {
 }
 
 
-def rosenbrock(
-    variables: NDArray[np.float64], _: EvaluationBatchContext
-) -> EvaluationBatchResult:
+def rosenbrock(variables: NDArray[np.float64], _: EvaluationFunctionContext) -> float:
     """Evaluate the rosenbrock function.
 
     Args:
@@ -37,37 +33,28 @@ def rosenbrock(
     Returns:
         Calculated objectives.
     """
-    objectives = np.zeros((variables.shape[0], 1), dtype=np.float64)
-    for idx in range(variables.shape[0]):
-        x, y = variables[idx, :]
-        objectives[idx, 0] = (1.0 - x) ** 2 + 100 * (y - x * x) ** 2
-    return EvaluationBatchResult(
-        objectives=objectives,
-    )
+    x, y = variables
+    return float((1.0 - x) ** 2 + 100 * (y - x * x) ** 2)
 
 
-def report(results: tuple[Results, ...]) -> None:
+def report(result: EvaluateResult) -> None:
     """Report results of an evaluation.
 
     Args:
-        results: The results.
+        result: The result of a single function evaluation.
     """
-    for item in results:
-        if isinstance(item, FunctionResults) and item.functions is not None:
-            print(f"  variables: {item.evaluations.variables}")
-            print(f"  objective: {item.functions.target_objective}\n")
+    if result.target_objective is not None:
+        print(f"  variables: {result.results.evaluations.variables}")
+        print(f"  objective: {result.target_objective}\n")
 
 
 def run_optimization(config: dict[str, Any]) -> None:
     """Run the optimization."""
-    optimizer = BasicOptimizer(config, rosenbrock)
-    optimizer.set_results_callback(report)
-    optimizer.run(initial_values)
-    assert optimizer.results is not None
-    assert optimizer.results.functions is not None
-    assert np.allclose(optimizer.results.evaluations.variables, 1.0, atol=0.01)
-    print(f"  variables: {optimizer.results.evaluations.variables}")
-    print(f"  objective: {optimizer.results.functions.target_objective}\n")
+    result = optimize(config, initial_values, rosenbrock, report=report)
+    assert result.variables is not None
+    assert np.allclose(result.variables, 1.0, atol=0.01)
+    print(f"  variables: {result.variables}")
+    print(f"  objective: {result.target_objective}\n")
 
 
 def main() -> None:
