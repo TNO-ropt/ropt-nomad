@@ -138,9 +138,8 @@ class NomadBackend(Backend):
                     if len(split_option) > 1 and split_option[1].strip()
                     else "yes"
                 )
-            *_, method = self._method.rpartition("/")
             OptionsSchemaModel.model_validate(_OPTIONS_SCHEMA).get_options_model(
-                _DEFAULT_METHOD if method == "default" else method
+                self._method
             ).model_validate(options_dict)
 
             for option in self._config.options:
