@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 from pydantic import ValidationError
 from ropt.simple import optimize
-from ropt.workflow import validate_backend_options
+from ropt.utils import validate_backend_options
 
 initial_values = [0.2, 0.0, 0.1]
 
