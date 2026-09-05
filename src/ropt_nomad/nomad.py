@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 import re
 from pathlib import Path
-from typing import TYPE_CHECKING, Annotated, Any, Final
+from typing import TYPE_CHECKING, Annotated, Any, ClassVar, Final
 
 import numpy as np
 import PyNomad
@@ -15,13 +15,13 @@ from ropt.backend.utils import NormalizedConstraints, get_masked_linear_constrai
 from ropt.config.options import OptionsSchemaModel
 from ropt.enums import VariableType
 from ropt.exceptions import UnsupportedError
-from ropt.plugins.backend import BackendPlugin
 
 if TYPE_CHECKING:
     from numpy.typing import NDArray
     from ropt.config import BackendConfig
     from ropt.context import EnOptContext
     from ropt.core import OptimizerCallback
+    from ropt.plugins import MethodSpec
 
 _logger = logging.getLogger("ropt.backend.nomad")
 
@@ -51,6 +51,8 @@ class NomadBackend(Backend):
 
     --8<-- "nomad.md"
     """
+
+    methods: ClassVar[MethodSpec] = _SUPPORTED_METHODS | {"default"}
 
     def __init__(self, backend_config: BackendConfig) -> None:
         """Initialize the Nomad optimizer backend.
@@ -122,7 +124,7 @@ class NomadBackend(Backend):
     def validate_options(self) -> None:
         """Validate the options of a given method.
 
-        See the [ropt.plugins.backend.BackendPlugin][] abstract base class.
+        See the [ropt.backend.Backend][] abstract base class.
 
         # noqa
         """  # ruff: ignore[docstring-missing-exception]
@@ -382,30 +384,6 @@ class NomadBackend(Backend):
             assert function is not None
             self._cached_function = function.copy()
         return self._cached_function
-
-
-class NomadBackendPlugin(BackendPlugin):
-    """Nomad optimizer plugin class."""
-
-    @classmethod
-    def create(cls, backend_config: BackendConfig) -> NomadBackend:
-        """Initialize the optimizer plugin.
-
-        See the [ropt.plugins.backend.BackendPlugin][] abstract base class.
-
-        # noqa
-        """  # ruff: ignore[docstring-missing-returns]
-        return NomadBackend(backend_config)
-
-    @classmethod
-    def is_supported(cls, method: str) -> bool:
-        """Check if a method is supported.
-
-        See the [ropt.plugins.backend.BackendPlugin][] abstract base class.
-
-        # noqa
-        """  # ruff: ignore[docstring-missing-returns]
-        return method.lower() in (_SUPPORTED_METHODS | {"default"})
 
 
 _OPTIONS_SCHEMA: dict[str, Any] = {
