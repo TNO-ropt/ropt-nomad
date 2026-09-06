@@ -36,6 +36,21 @@ class NomadBackend(Backend):
     [`Nomad`](https://nomad-4-user-guide.readthedocs.io/en/latest/index.html),
     enabling their its within `ropt`.
 
+    !!! warning "This backend cannot run concurrently in-process"
+        NOMAD keeps the state of a run inside the library rather than in
+        anything it hands back, so a second run started while the first is still
+        going corrupts it: NOMAD reports that a subproblem was not found, and
+        both runs then hang. One optimization after another in the same process
+        is fine; two at the same time are not. To use this backend alongside
+        anything else, prefix the method with `external/` and it runs in a
+        process of its own, through the
+        [`external`][ropt.backend.external.ExternalBackend] backend.
+
+    !!! note "Optimizer output goes to the process's standard output"
+        NOMAD reports its progress on the process's standard output. The
+        `DISPLAY_` options control how much it says, but not where it goes, so
+        optimizations running at the same time cannot keep their output apart.
+
     To select the `MADS` optimizer, set the `method` field within the
     [`optimizer`][ropt.config.BackendConfig] section of the
     [`EnOptContext`][ropt.context.EnOptContext] configuration object to
