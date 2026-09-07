@@ -12,9 +12,10 @@ import PyNomad
 from pydantic import Field
 from ropt.backend import Backend
 from ropt.backend.utils import (
-    NormalizedConstraints,
-    get_masked_linear_constraints,
+    get_linear_constraints,
+    get_nonlinear_equalities,
     resolve_verbosity,
+    split_linear_constraints,
 )
 from ropt.config.options import OptionsSchemaModel
 from ropt.enums import VariableType
@@ -144,8 +145,8 @@ class NomadBackend(Backend):
         self._cached_function = None
 
         self._bounds = self._get_bounds()
-        self._normalized_constraints = self._init_constraints(initial_values)
-        self._parameters = self._get_parameters(self._normalized_constraints)
+        self._is_eq = self._init_constraints(initial_values)
+        self._parameters = self._get_parameters(self._is_eq)
 
         PyNomad.optimize(
             self._evaluate,
@@ -272,14 +273,12 @@ class NomadBackend(Backend):
         return [f"DISPLAY_DEGREE {min(level, _MAX_DISPLAY_DEGREE)}"]
 
     def _get_parameters(  # ruff: ignore[complex-structure]
-        self, normalized_constraints: NormalizedConstraints | None
+        self, is_eq: NDArray[np.bool_] | None
     ) -> list[str]:
         dim = self._context.variables.mask.sum()
         parameters = [f"DIMENSION {dim}"]
 
-        constraints = (
-            0 if normalized_constraints is None else len(normalized_constraints.is_eq)
-        )
+        constraints = 0 if is_eq is None else int(is_eq.size)
         bb_output_type: str | None = "BB_OUTPUT_TYPE OBJ" + " EB" * constraints
         have_bb_max_block_size = False
         have_display_degree = False
@@ -337,48 +336,28 @@ class NomadBackend(Backend):
 
         return parameters
 
-    def _get_constraint_bounds(
-        self, nonlinear_bounds: tuple[NDArray[np.float64], NDArray[np.float64]] | None
-    ) -> tuple[NDArray[np.float64], NDArray[np.float64]] | None:
-        bounds = []
-        if nonlinear_bounds is not None:
-            bounds.append(nonlinear_bounds)
-        if self._linear_constraint_bounds is not None:
-            bounds.append(self._linear_constraint_bounds)
-        if bounds:
-            lower_bounds, upper_bounds = zip(*bounds, strict=True)
-            return np.concatenate(lower_bounds), np.concatenate(upper_bounds)
-        return None
-
     def _init_constraints(
         self, initial_values: NDArray[np.float64]
-    ) -> NormalizedConstraints | None:
-        self._lin_coef: NDArray[np.float64] | None = None
-        self._linear_constraint_bounds: (
-            tuple[NDArray[np.float64], NDArray[np.float64]] | None
-        ) = None
+    ) -> NDArray[np.bool_] | None:
+        is_eq = get_nonlinear_equalities(self._context)
+        self._nonlinear_constraint_count = 0 if is_eq is None else int(is_eq.size)
+        self._linear_coefficients: NDArray[np.float64] | None = None
+        self._linear_offsets: NDArray[np.float64] | None = None
         if self._context.linear_constraints is not None:
-            self._lin_coef, lin_lower, lin_upper = get_masked_linear_constraints(
-                self._context, initial_values
+            coefficients, offsets, linear_is_eq = split_linear_constraints(
+                *get_linear_constraints(self._context, initial_values)
             )
-            self._linear_constraint_bounds = (lin_lower, lin_upper)
-        nonlinear_bounds = (
-            None
-            if self._context.nonlinear_constraints is None
-            else (
-                self._context.nonlinear_constraints.lower_bounds,
-                self._context.nonlinear_constraints.upper_bounds,
+            self._linear_coefficients = coefficients
+            self._linear_offsets = offsets
+            is_eq = (
+                linear_is_eq if is_eq is None else np.concatenate((is_eq, linear_is_eq))
             )
-        )
-        bounds = self._get_constraint_bounds(nonlinear_bounds)
-        if bounds is not None:
-            normalized_constraints = NormalizedConstraints(flip=True)
-            normalized_constraints.set_bounds(*bounds)
-            if np.any(normalized_constraints.is_eq):
-                msg = "Equality constraints are not supported by NOMAD"
-                raise ValueError(msg)
-            return normalized_constraints
-        return None
+        if is_eq is None or is_eq.size == 0:
+            return None
+        if bool(is_eq.any()):
+            msg = "Equality constraints are not supported by NOMAD"
+            raise ValueError(msg)
+        return is_eq
 
     def _calculate_objective(
         self, variables: NDArray[np.float64]
@@ -391,25 +370,22 @@ class NomadBackend(Backend):
     def _calculate_constraints(
         self, variables: NDArray[np.float64]
     ) -> NDArray[np.float64]:
-        if self._normalized_constraints is None:
+        if self._is_eq is None:
             return np.array([])
-        if self._normalized_constraints.constraints is None:
-            constraints = []
-            if self._context.nonlinear_constraints is not None:
-                functions = self._get_functions(variables)
-                constraints.append(
-                    (
-                        functions[1:] if variables.ndim == 1 else functions[:, 1:]
-                    ).transpose()
-                )
-            if self._lin_coef is not None:
-                constraints.append(np.matmul(self._lin_coef, variables.transpose()))
-            if constraints:
-                self._normalized_constraints.set_constraints(
-                    np.concatenate(constraints, axis=0)
-                )
-        assert self._normalized_constraints.constraints is not None
-        return self._normalized_constraints.constraints.transpose()
+        blocks = []
+        if self._nonlinear_constraint_count:
+            functions = self._get_functions(variables)
+            values = functions[1:] if variables.ndim == 1 else functions[:, 1:]
+            blocks.append(np.atleast_2d(values).T if variables.ndim == 1 else values.T)
+        if self._linear_coefficients is not None:
+            assert self._linear_offsets is not None
+            points = variables if variables.ndim > 1 else np.expand_dims(variables, 0)
+            blocks.append(
+                np.matmul(self._linear_coefficients, points.T)
+                - self._linear_offsets[:, np.newaxis]
+            )
+        # NOMAD treats a constraint as satisfied when it is non-positive.
+        return -np.concatenate(blocks, axis=0).transpose()
 
     def _get_functions(self, variables: NDArray[np.float64]) -> NDArray[np.float64]:
         if (
@@ -419,8 +395,6 @@ class NomadBackend(Backend):
         ):
             self._cached_variables = None
             self._cached_function = None
-            if self._normalized_constraints is not None:
-                self._normalized_constraints.reset()
         if self._cached_function is None:
             self._cached_variables = variables.copy()
             callback_result = self._optimizer_callback(
@@ -429,13 +403,6 @@ class NomadBackend(Backend):
                 return_gradients=False,
             )
             function = callback_result.functions
-            # The optimizer callback may change non-linear constraint bounds:
-            if self._normalized_constraints is not None:
-                bounds = self._get_constraint_bounds(
-                    callback_result.nonlinear_constraint_bounds
-                )
-                assert bounds is not None
-                self._normalized_constraints.set_bounds(*bounds)
             assert function is not None
             self._cached_function = function.copy()
         return self._cached_function
