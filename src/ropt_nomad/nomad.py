@@ -11,7 +11,11 @@ import numpy as np
 import PyNomad
 from pydantic import Field
 from ropt.backend import Backend
-from ropt.backend.utils import NormalizedConstraints, get_masked_linear_constraints
+from ropt.backend.utils import (
+    NormalizedConstraints,
+    get_masked_linear_constraints,
+    resolve_verbosity,
+)
 from ropt.config.options import OptionsSchemaModel
 from ropt.enums import VariableType
 from ropt.exceptions import UnsupportedError
@@ -27,6 +31,8 @@ _logger = logging.getLogger("ropt.backend.nomad")
 
 _SUPPORTED_METHODS: Final = {"mads"}
 _DEFAULT_METHOD: Final = "mads"
+# The highest reporting level NOMAD accepts:
+_MAX_DISPLAY_DEGREE: Final = 3
 
 
 class NomadBackend(Backend):
@@ -46,10 +52,12 @@ class NomadBackend(Backend):
         process of its own, through the
         [`external`][ropt.backend.external.ExternalBackend] backend.
 
-    !!! note "Optimizer output goes to the process's standard output"
-        NOMAD reports its progress on the process's standard output. The
-        `DISPLAY_` options control how much it says, but not where it goes, so
-        optimizations running at the same time cannot keep their output apart.
+    !!! note "Optimizer output"
+        NOMAD reports its progress from its C++ implementation. How much it says
+        follows the `verbose` setting of
+        [`BackendConfig`][ropt.config.BackendConfig], which is mapped onto
+        NOMAD's `DISPLAY_DEGREE`; supplying `DISPLAY_DEGREE` in `options`
+        overrides it.
 
     To select the `MADS` optimizer, set the `method` field within the
     [`optimizer`][ropt.config.BackendConfig] section of the
@@ -111,6 +119,19 @@ class NomadBackend(Backend):
         # noqa
         """
         return self._config.parallel
+
+    @property
+    def bypasses_python_output(self) -> bool:
+        """Whether the optimizer prints without going through Python.
+
+        NOMAD reports its progress from its C++ implementation, so its output
+        does not pass through `sys.stdout`.
+
+        See the [ropt.backend.Backend][] abstract base class.
+
+        # noqa
+        """
+        return True
 
     def start(self, initial_values: NDArray[np.float64]) -> None:
         """Start the optimization.
@@ -240,6 +261,16 @@ class NomadBackend(Backend):
             else [int(not np.isnan(objective)) for objective in objectives]
         )
 
+    def _get_display_parameters(self, *, have_display_degree: bool) -> list[str]:
+        # NOMAD reports at degree 2 unless told otherwise, so a parameter is
+        # only added to turn that down or to set the level explicitly.
+        if have_display_degree:
+            return []
+        level = resolve_verbosity(verbose=self._config.verbose)
+        if level is None:
+            return []
+        return [f"DISPLAY_DEGREE {min(level, _MAX_DISPLAY_DEGREE)}"]
+
     def _get_parameters(  # ruff: ignore[complex-structure]
         self, normalized_constraints: NormalizedConstraints | None
     ) -> list[str]:
@@ -251,6 +282,7 @@ class NomadBackend(Backend):
         )
         bb_output_type: str | None = "BB_OUTPUT_TYPE OBJ" + " EB" * constraints
         have_bb_max_block_size = False
+        have_display_degree = False
 
         if self._config.max_iterations is not None:
             parameters.append(f"MAX_ITERATIONS {self._config.max_iterations}")
@@ -280,7 +312,15 @@ class NomadBackend(Backend):
                         raise ValueError(msg)
                     have_bb_max_block_size = True
 
+            have_display_degree = any(
+                option.strip().startswith("DISPLAY_DEGREE")
+                for option in self._config.options
+            )
             parameters.extend(self._config.options)
+
+        parameters += self._get_display_parameters(
+            have_display_degree=have_display_degree
+        )
 
         if self._config.parallel and have_bb_max_block_size is False:
             msg = (
