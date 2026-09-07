@@ -500,10 +500,12 @@ process of its own, through the
 <a class="autorefs autorefs-external" href="https://tno-ropt.github.io/ropt/latest/reference/backend/#ropt.backend.external.ExternalBackend"><code>external</code></a> backend.</p>
 </div>
 <div class="admonition note">
-<p class="admonition-title">Optimizer output goes to the process's standard output</p>
-<p>NOMAD reports its progress on the process's standard output. The
-<code>DISPLAY_</code> options control how much it says, but not where it goes, so
-optimizations running at the same time cannot keep their output apart.</p>
+<p class="admonition-title">Optimizer output</p>
+<p>NOMAD reports its progress from its C++ implementation. How much it says
+follows the <code>verbose</code> setting of
+<a class="autorefs autorefs-external" href="https://tno-ropt.github.io/ropt/latest/reference/config/#ropt.config.BackendConfig"><code>BackendConfig</code></a>, which is mapped onto
+NOMAD's <code>DISPLAY_DEGREE</code>; supplying <code>DISPLAY_DEGREE</code> in <code>options</code>
+overrides it.</p>
 </div>
 <p>To select the <code>MADS</code> optimizer, set the <code>method</code> field within the
 <a class="autorefs autorefs-external" href="https://tno-ropt.github.io/ropt/latest/reference/config/#ropt.config.BackendConfig"><code>optimizer</code></a> section of the
