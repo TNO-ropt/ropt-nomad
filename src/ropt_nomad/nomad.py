@@ -5,15 +5,13 @@ from __future__ import annotations
 import logging
 import re
 from pathlib import Path
-from typing import TYPE_CHECKING, Annotated, Any, ClassVar, Final
+from typing import TYPE_CHECKING, Annotated, Any, ClassVar, Final, Literal
 
 import numpy as np
 import PyNomad
 from pydantic import Field
 from ropt.backend import Backend
 from ropt.backend.utils import (
-    get_linear_constraints,
-    get_nonlinear_equalities,
     resolve_verbosity,
     split_linear_constraints,
 )
@@ -23,8 +21,8 @@ from ropt.exceptions import UnsupportedError
 
 if TYPE_CHECKING:
     from numpy.typing import NDArray
+    from ropt.backend import OptimizationProblem
     from ropt.config import BackendConfig
-    from ropt.context import EnOptContext
     from ropt.core import OptimizerCallback
     from ropt.plugins import MethodSpec
 
@@ -93,34 +91,6 @@ class NomadBackend(Backend):
             raise UnsupportedError(msg)
         self._config = backend_config
 
-    def init(
-        self,
-        context: EnOptContext,
-        optimizer_callback: OptimizerCallback,
-    ) -> None:
-        """Initialize the optimizer implemented by the nomad plugin.
-
-        See the [ropt.backend.Backend][] abstract base class.
-
-        # noqa
-        """
-        self._context = context
-        self._optimizer_callback = optimizer_callback
-        self._cached_variables: NDArray[np.float64] | None = None
-        self._cached_function: NDArray[np.float64] | None = None
-        self._exception: Exception | None = None
-        _logger.debug("Using NOMAD optimizer: %s", self._method)
-
-    @property
-    def is_parallel(self) -> bool:
-        """Whether the current run is parallel.
-
-        See the [ropt.backend.Backend][] abstract base class.
-
-        # noqa
-        """
-        return self._config.parallel
-
     @property
     def bypasses_python_output(self) -> bool:
         """Whether the optimizer prints without going through Python.
@@ -134,23 +104,34 @@ class NomadBackend(Backend):
         """
         return True
 
-    def start(self, initial_values: NDArray[np.float64]) -> None:
+    def start(
+        self,
+        problem: OptimizationProblem,
+        optimizer_callback: OptimizerCallback,
+        *,
+        evaluation_policy: Literal["speculative", "separate", "auto"],  # ruff: ignore[unused-method-argument]
+        output_dir: Path | None,  # ruff: ignore[unused-method-argument]
+    ) -> None:
         """Start the optimization.
 
         See the [ropt.backend.Backend][] abstract base class.
 
         # noqa
         """
-        self._cached_variables = None
-        self._cached_function = None
+        self._problem = problem
+        self._optimizer_callback = optimizer_callback
+        self._cached_variables: NDArray[np.float64] | None = None
+        self._cached_function: NDArray[np.float64] | None = None
+        self._exception: Exception | None = None
+        _logger.debug("Using NOMAD optimizer: %s", self._method)
 
         self._bounds = self._get_bounds()
-        self._is_eq = self._init_constraints(initial_values)
+        self._is_eq = self._init_constraints()
         self._parameters = self._get_parameters(self._is_eq)
 
         PyNomad.optimize(
             self._evaluate,
-            initial_values[self._context.variables.mask].tolist(),
+            problem.initial_values.tolist(),
             self._bounds[0],
             self._bounds[1],
             self._parameters,
@@ -202,13 +183,10 @@ class NomadBackend(Backend):
                         raise ValueError(msg)
 
     def _get_bounds(self) -> tuple[list[float], list[float]]:
-        lower_bounds = self._context.variables.lower_bounds[
-            self._context.variables.mask
-        ]
-        upper_bounds = self._context.variables.upper_bounds[
-            self._context.variables.mask
-        ]
-        return lower_bounds.tolist(), upper_bounds.tolist()
+        return (
+            self._problem.lower_bounds.tolist(),
+            self._problem.upper_bounds.tolist(),
+        )
 
     def _evaluate(
         self,
@@ -275,7 +253,7 @@ class NomadBackend(Backend):
     def _get_parameters(  # ruff: ignore[complex-structure]
         self, is_eq: NDArray[np.bool_] | None
     ) -> list[str]:
-        dim = self._context.variables.mask.sum()
+        dim = self._problem.variable_count
         parameters = [f"DIMENSION {dim}"]
 
         constraints = 0 if is_eq is None else int(is_eq.size)
@@ -287,7 +265,7 @@ class NomadBackend(Backend):
             parameters.append(f"MAX_ITERATIONS {self._config.max_iterations}")
 
         bb_input_type = None
-        types = self._context.variables.types[self._context.variables.mask]
+        types = self._problem.variable_types
         if types is not None:
             bb_input_type = "BB_INPUT_TYPE ("
             for item in types:
@@ -336,17 +314,14 @@ class NomadBackend(Backend):
 
         return parameters
 
-    def _init_constraints(
-        self, initial_values: NDArray[np.float64]
-    ) -> NDArray[np.bool_] | None:
-        is_eq = get_nonlinear_equalities(self._context)
+    def _init_constraints(self) -> NDArray[np.bool_] | None:
+        is_eq = self._problem.nonlinear_equalities
         self._nonlinear_constraint_count = 0 if is_eq is None else int(is_eq.size)
         self._linear_coefficients: NDArray[np.float64] | None = None
         self._linear_offsets: NDArray[np.float64] | None = None
-        if self._context.linear_constraints is not None:
-            coefficients, offsets, linear_is_eq = split_linear_constraints(
-                *get_linear_constraints(self._context, initial_values)
-            )
+        linear = self._problem.linear_constraints
+        if linear is not None:
+            coefficients, offsets, linear_is_eq = split_linear_constraints(*linear)
             self._linear_coefficients = coefficients
             self._linear_offsets = offsets
             is_eq = (
