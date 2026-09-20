@@ -5,7 +5,8 @@ from typing import Any
 import numpy as np
 from numpy.typing import NDArray
 from ropt.enums import VariableType
-from ropt.simple import EvaluateResult, EvaluationFunctionContext, optimize
+from ropt.results import FunctionResults
+from ropt.simple import EvaluationFunctionContext, optimize
 
 initial_values = 2 * [0.0]
 
@@ -47,24 +48,24 @@ def function(
     return [float(objective), float(constraint)]
 
 
-def report(result: EvaluateResult) -> None:
+def report(result: FunctionResults) -> None:
     """Report results of an evaluation.
 
     Args:
         result: The result of a single function evaluation.
     """
     if result.target_objective is not None:
-        print(f"  variables: {result.results.variables}")
+        print(f"  variables: {result.variables}")
         print(f"  objective: {result.target_objective}\n")
 
 
 def run_optimization(config: dict[str, Any]) -> None:
     """Run the optimization."""
     result = optimize(config, initial_values, function, report=report)
-    assert result.variables is not None
-    assert np.all(np.equal(result.variables, [3, 7]))
-    print(f"  variables: {result.variables}")
-    print(f"  objective: {result.target_objective}\n")
+    assert result.results is not None
+    assert np.all(np.equal(result.results.variables, [3, 7]))
+    print(f"  variables: {result.results.variables}")
+    print(f"  objective: {result.results.target_objective}\n")
 
 
 def main() -> None:

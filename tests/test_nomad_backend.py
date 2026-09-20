@@ -82,8 +82,8 @@ def test_nomad_bound_constraints(
     if parallel:
         config["backend"]["options"] = ["BB_MAX_BLOCK_SIZE 4"]
     result = optimize(config, initial_values, eval_func())
-    assert result.variables is not None
-    assert np.allclose(result.variables, [0.15, 0.0, 0.2], atol=0.02)
+    assert result.results is not None
+    assert np.allclose(result.results.variables, [0.15, 0.0, 0.2], atol=0.02)
 
 
 def test_nomad_bound_constraints_block_size_one(
@@ -95,8 +95,8 @@ def test_nomad_bound_constraints_block_size_one(
     config["backend"]["parallel"] = True
     config["backend"]["options"] = ["BB_MAX_BLOCK_SIZE 1"]
     result = optimize(config, initial_values, eval_func())
-    assert result.variables is not None
-    assert np.allclose(result.variables, [0.15, 0.0, 0.2], atol=0.02)
+    assert result.results is not None
+    assert np.allclose(result.results.variables, [0.15, 0.0, 0.2], atol=0.02)
 
 
 @pytest.mark.parametrize("parallel", [False, True])
@@ -127,8 +127,8 @@ def test_nomad_ineq_nonlinear_constraints(  # ruff: ignore[too-many-positional-a
     result = optimize(
         config, initial_values, eval_func(test_functions, [constraint_function])
     )
-    assert result.variables is not None
-    assert np.allclose(result.variables, [-0.05, 0.0, 0.45], atol=0.02)
+    assert result.results is not None
+    assert np.allclose(result.results.variables, [-0.05, 0.0, 0.45], atol=0.02)
 
 
 @pytest.mark.parametrize("parallel", [False, True])
@@ -179,8 +179,8 @@ def test_nomad_ineq_nonlinear_constraints_two_sided(
     result = optimize(
         config, initial_values, eval_func(test_functions, [constraint_function])
     )
-    assert result.variables is not None
-    assert np.allclose(result.variables, [-0.1, 0.0, 0.4], atol=0.02)
+    assert result.results is not None
+    assert np.allclose(result.results.variables, [-0.1, 0.0, 0.4], atol=0.02)
 
 
 @pytest.mark.parametrize("parallel", [False, True])
@@ -197,8 +197,8 @@ def test_nomad_le_ge_linear_constraints(
         config["backend"]["options"] = ["BB_MAX_BLOCK_SIZE 4"]
 
     result = optimize(config, initial_values, eval_func())
-    assert result.variables is not None
-    assert np.allclose(result.variables, [-0.05, 0.0, 0.45], atol=0.02)
+    assert result.results is not None
+    assert np.allclose(result.results.variables, [-0.05, 0.0, 0.45], atol=0.02)
 
 
 @pytest.mark.parametrize("parallel", [False, True])
@@ -234,8 +234,8 @@ def test_nomad_le_ge_linear_constraints_two_sided(
         config["backend"]["options"] = ["BB_MAX_BLOCK_SIZE 4"]
 
     result = optimize(config, initial_values, eval_func())
-    assert result.variables is not None
-    assert np.allclose(result.variables, [-0.1, 0.0, 0.4], atol=0.02)
+    assert result.results is not None
+    assert np.allclose(result.results.variables, [-0.1, 0.0, 0.4], atol=0.02)
 
     config["linear_constraints"] = {
         "coefficients": [[1, 0, 1]],
@@ -244,8 +244,8 @@ def test_nomad_le_ge_linear_constraints_two_sided(
     }
 
     result = optimize(config, initial_values, eval_func())
-    assert result.variables is not None
-    assert np.allclose(result.variables, [-0.1, 0.0, 0.4], atol=0.02)
+    assert result.results is not None
+    assert np.allclose(result.results.variables, [-0.1, 0.0, 0.4], atol=0.02)
 
 
 def test_nomad_dimension_keyword(config: dict[str, Any], eval_func: Any) -> None:
@@ -289,8 +289,8 @@ def test_nomad_bb_output_type(
     result = optimize(
         config, initial_values, eval_func(test_functions, [constraint_function])
     )
-    assert result.variables is not None
-    assert np.allclose(result.variables, [-0.05, 0.0, 0.45], atol=0.02)
+    assert result.results is not None
+    assert np.allclose(result.results.variables, [-0.05, 0.0, 0.45], atol=0.02)
 
     config["backend"]["options"] = ["BB_OUTPUT_TYPE OBJ PB PB"]
     with pytest.raises(
@@ -335,8 +335,8 @@ def test_nomad_evaluation_failure(
         config["backend"]["options"] = ["BB_MAX_BLOCK_SIZE 4"]
 
     result1 = optimize(config, initial_values, eval_func())
-    assert result1.variables is not None
-    assert np.allclose(result1.variables, [0.15, 0.0, 0.2], atol=0.02)
+    assert result1.results is not None
+    assert np.allclose(result1.results.variables, [0.15, 0.0, 0.2], atol=0.02)
 
     counter = 0
 
@@ -349,6 +349,6 @@ def test_nomad_evaluation_failure(
         return test_functions[0](x, 0)
 
     result2 = optimize(config, initial_values, eval_func((_add_nan, test_functions[1])))
-    assert result2.variables is not None
-    assert np.allclose(result2.variables, [0.15, 0.0, 0.2], atol=0.02)
-    assert not np.all(np.equal(result1.variables, result2.variables))
+    assert result2.results is not None
+    assert np.allclose(result2.results.variables, [0.15, 0.0, 0.2], atol=0.02)
+    assert not np.all(np.equal(result1.results.variables, result2.results.variables))
