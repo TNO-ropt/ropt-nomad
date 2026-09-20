@@ -39,7 +39,7 @@ class NomadBackend(Backend):
 
     This class provides an interface to the `MADS` optimization algorithm from
     [`Nomad`](https://nomad-4-user-guide.readthedocs.io/en/latest/index.html),
-    enabling their its within `ropt`.
+    enabling its use within `ropt`.
 
     !!! warning "This backend cannot run concurrently in-process"
         NOMAD keeps the state of a run inside the library rather than in
@@ -59,12 +59,12 @@ class NomadBackend(Backend):
         overrides it.
 
     To select the `MADS` optimizer, set the `method` field within the
-    [`optimizer`][ropt.config.BackendConfig] section of the
+    [`backend`][ropt.config.BackendConfig] section of the
     [`EnOptContext`][ropt.context.EnOptContext] configuration object to
     `mads`. Most general options defined in the
     [`EnOptContext`][ropt.context.EnOptContext] object are supported. For
     algorithm-specific options, use the `options` dictionary within the
-    [`optimizer`][ropt.config.BackendConfig] section.
+    [`backend`][ropt.config.BackendConfig] section.
 
     The table below lists the `MADS`-specific options that are supported. Click
     on the method name to consult the
