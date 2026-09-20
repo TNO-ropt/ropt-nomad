@@ -443,7 +443,7 @@
 <p>The <code>ropt-nomad</code> package extends the
 <a href="https://tno-ropt.github.io/ropt/dev/"><code>ropt</code></a> module by providing a plugin that
 integrates the <code>MADS</code> optimization algorithm from the
-<a href="https://www.gerad.ca/en/software/nomad/">Nomad</a> toolkit.  <code>ropt</code> itself is a
+<a href="https://www.gerad.ca/en/software/nomad/">Nomad</a> toolkit. <code>ropt</code> itself is a
 robust optimization framework designed for both continuous and discrete
 optimization workflows and is extensible through its plugin architecture.
 Installing <code>ropt-nomad</code> makes <code>MADS</code> directly available within <code>ropt</code>.</p>
@@ -451,16 +451,15 @@ Installing <code>ropt-nomad</code> makes <code>MADS</code> directly available wi
 <p>An optimization by <code>ropt</code> using the plugin works mostly as any other
 optimization run. However, there are a few things to consider:</p>
 <ol>
-<li>Gradients are not used, any specifications relating to gradient calculations
+<li>Gradients are not used: any specifications relating to gradient calculations
    in <code>ropt</code> are ignored.</li>
-<li>The <code>convergence_tolerance</code> optimization parameter, which can be specified in
-   the optimization section is ignored.</li>
+<li>The <code>convergence_tolerance</code> field of the <code>backend</code> section is ignored.</li>
 <li>Only inequality constraints are supported by <code>NOMAD</code>.</li>
 <li>Linear and non-linear constraints are both supported. Linear constraints are
    not supported directly, but are internally converted to non-linear
    constraints.</li>
 <li>Some additional <code>Nomad</code> options can be passed as a list of strings via the
-   <code>options</code> field in the optimizer configuration. Refer to the documentation of
+   <code>options</code> field of the <code>backend</code> section. Refer to the documentation of
    the <a class="autorefs autorefs-internal" title="            ropt_nomad.nomad.NomadBackend" href="#ropt_nomad.nomad.NomadBackend"><code>NomadBackend</code></a> class for supported
    options.</li>
 </ol>
@@ -487,7 +486,7 @@ optimization run. However, there are a few things to consider:</p>
         <p>Nomad optimization backend for ropt.</p>
 <p>This class provides an interface to the <code>MADS</code> optimization algorithm from
 <a href="https://nomad-4-user-guide.readthedocs.io/en/latest/index.html"><code>Nomad</code></a>,
-enabling their its within <code>ropt</code>.</p>
+enabling its use within <code>ropt</code>.</p>
 <div class="admonition warning">
 <p class="admonition-title">This backend cannot run concurrently in-process</p>
 <p>NOMAD keeps the state of a run inside the library rather than in
@@ -508,12 +507,12 @@ NOMAD's <code>DISPLAY_DEGREE</code>; supplying <code>DISPLAY_DEGREE</code> in <c
 overrides it.</p>
 </div>
 <p>To select the <code>MADS</code> optimizer, set the <code>method</code> field within the
-<a class="autorefs autorefs-external" href="https://tno-ropt.github.io/ropt/latest/reference/config/#ropt.config.BackendConfig"><code>optimizer</code></a> section of the
+<a class="autorefs autorefs-external" href="https://tno-ropt.github.io/ropt/latest/reference/config/#ropt.config.BackendConfig"><code>backend</code></a> section of the
 <a class="autorefs autorefs-external" href="https://tno-ropt.github.io/ropt/latest/reference/context/#ropt.context.EnOptContext"><code>EnOptContext</code></a> configuration object to
 <code>mads</code>. Most general options defined in the
 <a class="autorefs autorefs-external" href="https://tno-ropt.github.io/ropt/latest/reference/context/#ropt.context.EnOptContext"><code>EnOptContext</code></a> object are supported. For
 algorithm-specific options, use the <code>options</code> dictionary within the
-<a class="autorefs autorefs-external" href="https://tno-ropt.github.io/ropt/latest/reference/config/#ropt.config.BackendConfig"><code>optimizer</code></a> section.</p>
+<a class="autorefs autorefs-external" href="https://tno-ropt.github.io/ropt/latest/reference/config/#ropt.config.BackendConfig"><code>backend</code></a> section.</p>
 <p>The table below lists the <code>MADS</code>-specific options that are supported. Click
 on the method name to consult the
 <a href="https://nomad-4-user-guide.readthedocs.io/en/latest/index.html"><code>Nomad</code></a>
