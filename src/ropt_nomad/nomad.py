@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 import re
 from pathlib import Path
-from typing import TYPE_CHECKING, Annotated, Any, ClassVar, Final, Literal
+from typing import TYPE_CHECKING, Annotated, Any, ClassVar, Final, Literal, override
 
 import numpy as np
 import PyNomad
@@ -92,6 +92,7 @@ class NomadBackend(Backend):
         self._config = backend_config
 
     @property
+    @override
     def bypasses_python_output(self) -> bool:
         """Whether the optimizer prints without going through Python.
 
@@ -104,13 +105,14 @@ class NomadBackend(Backend):
         """
         return True
 
+    @override
     def start(
         self,
         problem: OptimizationProblem,
         optimizer_callback: OptimizerCallback,
         *,
-        evaluation_policy: Literal["speculative", "separate", "auto"],  # ruff: ignore[unused-method-argument]
-        output_dir: Path | None,  # ruff: ignore[unused-method-argument]
+        evaluation_policy: Literal["speculative", "separate", "auto"],
+        output_dir: Path | None,
     ) -> None:
         """Start the optimization.
 
@@ -139,6 +141,7 @@ class NomadBackend(Backend):
         if self._exception is not None:
             raise self._exception
 
+    @override
     def validate_options(self) -> None:
         """Validate the options of a given method.
 

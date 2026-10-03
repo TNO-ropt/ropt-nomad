@@ -69,6 +69,7 @@ convention = "google"
 
 [tool.mypy]
 strict = true
+enable_error_code = ["explicit-override"]
 
 [[tool.mypy.overrides]]
 module = ["PyNomad.*", "cloudpickle"]
