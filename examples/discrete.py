@@ -4,9 +4,7 @@ from typing import Any
 
 import numpy as np
 from numpy.typing import NDArray
-from ropt.enums import VariableType
-from ropt.results import FunctionResults
-from ropt.simple import EvaluationFunctionContext, optimize
+from ropt import EvaluationFunctionContext, FunctionResults, optimize
 
 initial_values = 2 * [0.0]
 
@@ -15,7 +13,7 @@ CONFIG: dict[str, Any] = {
         "variable_count": 2,
         "lower_bounds": [0.0, 0.0],
         "upper_bounds": [10.0, 10.0],
-        "types": VariableType.INTEGER,
+        "types": "integer",
     },
     "backend": {
         "method": "nomad/default",

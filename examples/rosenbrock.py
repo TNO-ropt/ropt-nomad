@@ -4,8 +4,7 @@ from typing import Any
 
 import numpy as np
 from numpy.typing import NDArray
-from ropt.results import FunctionResults
-from ropt.simple import EvaluationFunctionContext, optimize
+from ropt import EvaluationFunctionContext, FunctionResults, optimize
 
 initial_values = 2 * [0.4]
 
