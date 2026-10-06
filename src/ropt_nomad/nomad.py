@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, Annotated, Any, ClassVar, Final, Literal, over
 import numpy as np
 import PyNomad
 from pydantic import Field
+from ropt import UnsupportedError
 from ropt.backend import Backend
 from ropt.backend.utils import (
     resolve_verbosity,
@@ -17,7 +18,6 @@ from ropt.backend.utils import (
 )
 from ropt.config.options import OptionsSchemaModel
 from ropt.enums import VariableType
-from ropt.exceptions import UnsupportedError
 
 if TYPE_CHECKING:
     from numpy.typing import NDArray
