@@ -50,7 +50,7 @@ def report(result: FunctionResults) -> None:
 
 def run_optimization(config: dict[str, Any]) -> None:
     """Run the optimization."""
-    result = optimize(config, initial_values, rosenbrock, report=report)
+    result = optimize(config, initial_values, rosenbrock, result_callback=report)
     assert result.results is not None
     assert np.allclose(result.results.variables, 1.0, atol=0.01)
     print(f"  variables: {result.results.variables}")
