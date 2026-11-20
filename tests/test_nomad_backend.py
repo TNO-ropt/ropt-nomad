@@ -7,6 +7,7 @@ import pytest
 from pydantic import ValidationError
 from ropt import optimize
 from ropt.backend import OptimizerCallbackResult
+from ropt.context import EnOptContext
 from ropt.utils import validate_backend_options
 
 from ropt_nomad.nomad import NomadBackend
@@ -63,6 +64,25 @@ def config_fixture() -> dict[str, Any]:
             "weights": [0.75, 0.25],
         },
     }
+
+
+@pytest.mark.parametrize("tolerance", [0.0, 1e-4])
+@pytest.mark.parametrize(
+    "external", ["", pytest.param("external/", marks=pytest.mark.external)]
+)
+def test_nomad_rejects_convergence_tolerance(tolerance: float, external: str) -> None:
+    with pytest.raises(
+        ValidationError, match="does not support 'convergence_tolerance'"
+    ):
+        EnOptContext.model_validate(
+            {
+                "variables": {"variable_count": 1},
+                "backend": {
+                    "method": f"{external}nomad/default",
+                    "convergence_tolerance": tolerance,
+                },
+            }
+        )
 
 
 def test_nomad_invalid_options(config: Any) -> None:

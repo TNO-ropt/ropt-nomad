@@ -14,7 +14,9 @@ optimization run. However, there are a few things to consider:
 
 1. Gradients are not used: any specifications relating to gradient calculations
    in `ropt` are ignored.
-2. The `convergence_tolerance` field of the `backend` section is ignored.
+2. Leave `backend.convergence_tolerance` unset or `None`; any other value raises
+   a validation error. Configure method-specific stopping criteria through
+   `backend.options` instead.
 3. Only inequality constraints are supported by `NOMAD`.
 4. Linear and non-linear constraints are both supported. Linear constraints are
    not supported directly, but are internally converted to non-linear

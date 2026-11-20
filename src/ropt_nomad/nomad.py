@@ -142,12 +142,19 @@ class NomadBackend(Backend):
 
     @override
     def validate_options(self) -> None:
-        """Validate the options of a given method.
+        """Validate backend settings and method-specific options.
 
-        See the [ropt.backend.Backend][] abstract base class.
-
-        # noqa
-        """  # ruff: ignore[docstring-missing-exception]
+        Raises:
+            ValueError: If a setting is unsupported, or the method-specific
+                        options are invalid.
+            TypeError:  If the options are not a list of strings.
+        """
+        if self._config.convergence_tolerance is not None:
+            msg = (
+                "The NOMAD backend does not support 'convergence_tolerance'; "
+                "use method-specific stopping criteria in 'options' instead."
+            )
+            raise ValueError(msg)
         if self._config.options is not None:
             if not isinstance(self._config.options, list):
                 msg = "The Nomad optimizer options must be a list of strings"
