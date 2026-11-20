@@ -442,7 +442,9 @@ optimization run. However, there are a few things to consider:</p>
 <ol>
 <li>Gradients are not used: any specifications relating to gradient calculations
    in <code>ropt</code> are ignored.</li>
-<li>The <code>convergence_tolerance</code> field of the <code>backend</code> section is ignored.</li>
+<li>Leave <code>backend.convergence_tolerance</code> unset or <code>None</code>; any other value raises
+   a validation error. Configure method-specific stopping criteria through
+   <code>backend.options</code> instead.</li>
 <li>Only inequality constraints are supported by <code>NOMAD</code>.</li>
 <li>Linear and non-linear constraints are both supported. Linear constraints are
    not supported directly, but are internally converted to non-linear
